@@ -1,0 +1,15 @@
+name: common
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  common:
+    uses: eidp/actions-common/.github/workflows/common.yml@b1ae9db377e1e789ec4583ef3bf7a022ae4bfee4 # v1.1.1
+    with:
+      runs-on: kubernetes-runner
+    permissions:
+      pull-requests: write
+      issues: write

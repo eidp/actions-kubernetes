@@ -1,0 +1,85 @@
+name: build
+
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+
+jobs:
+  test-create-context:
+    runs-on: kubernetes-runner
+    permissions:
+      contents: read
+      id-token: write
+    environment: development
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+    - name: Install yq
+      uses: frenck/action-setup-yq@c4b5be8b4a215c536a41d436757d9feb92836d4f # v1.0.2
+
+    - uses: ./create-context
+      id: create-context
+      with:
+        environment: development
+        api-server: ${{ vars.K8S_API_SERVER_DEVELOPMENT }}
+        certificate-authority-data: ${{ secrets.K8S_CERTIFICATE_AUTHORITY_DATA_DEVELOPMENT }}
+
+    - name: Verify context created
+      id: verify-context
+      run: |
+        # Verify the context exists
+        if ! kubectl config get-contexts ${{ steps.create-context.outputs.context-name }} &>/dev/null; then
+          echo "❌ Context '${{ steps.create-context.outputs.context-name }}' does not exist"
+          kubectl config get-contexts
+          exit 1
+        fi
+        echo "✅ Context '${{ steps.create-context.outputs.context-name }}' exists"
+
+        # Verify it's the current context
+        CURRENT_CONTEXT=$(kubectl config current-context)
+        if [ "$CURRENT_CONTEXT" != "${{ steps.create-context.outputs.context-name }}" ]; then
+          echo "❌ Current context is '$CURRENT_CONTEXT', expected '${{ steps.create-context.outputs.context-name }}'"
+          exit 1
+        fi
+        echo "✅ Context '${{ steps.create-context.outputs.context-name }}' is current"
+
+        # Verify basic connectivity
+        if ! kubectl auth whoami &>/dev/null; then
+          echo "❌ Cannot connect to cluster"
+          exit 1
+        fi        
+        echo "✅ Successfully connected to cluster"
+        echo "Authenticated as:"
+        kubectl auth whoami
+        
+        echo username=$(kubectl auth whoami -oyaml | yq '.status.userInfo.username') >> $GITHUB_OUTPUT
+      continue-on-error: true
+
+    - name: Assert Kubernetes username
+      uses: nick-fields/assert-action@aa0067e01f0f6545c31755d6ca128c5a3a14f6bf # v2.0.0
+      with:
+        expected: github:repo:${{ github.repository}}:environment:development
+        actual: ${{ steps.verify-context.outputs.username }}
+
+    - name: Assert Action Status
+      uses: nick-fields/assert-action@aa0067e01f0f6545c31755d6ca128c5a3a14f6bf # v2.0.0
+      with:
+        expected: success
+        actual: ${{ steps.create-context.outcome }}
+
+  check-workflow-status:
+    runs-on: kubernetes-runner
+    permissions:
+      contents: read
+      actions: read
+    steps:
+    - name: Check Workflow Status
+      id: check-workflow-status
+      uses: eidp/actions-common/check-workflow-status@b1ae9db377e1e789ec4583ef3bf7a022ae4bfee4 # v1.1.1
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
