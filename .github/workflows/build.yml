@@ -9,7 +9,7 @@ on:
     - main
 
 jobs:
-  test-create-context:
+  test:
     runs-on: kubernetes-runner
     permissions:
       contents: read
@@ -56,8 +56,8 @@ jobs:
         echo "✅ Successfully connected to cluster"
         echo "Authenticated as:"
         kubectl auth whoami
-        
-        echo username=$(kubectl auth whoami -oyaml | yq '.status.userInfo.username') >> $GITHUB_OUTPUT
+
+        echo "username=$(kubectl auth whoami -oyaml | yq '.status.userInfo.username')" >> $GITHUB_OUTPUT
       continue-on-error: true
 
     - name: Assert Kubernetes username
@@ -71,6 +71,51 @@ jobs:
       with:
         expected: success
         actual: ${{ steps.create-context.outcome }}
+
+    - name: "verify-up: invalid namespace"
+      id: verify-up-invalid-namespace
+      uses: ./verify-up
+      continue-on-error: true
+      with:
+        kubernetes-context: ${{ steps.create-context.outputs.context-name }}
+        namespace: non-existing-namespace
+        timeout: 30s
+
+    - name: Assert verify-up invalid namespace status
+      uses: nick-fields/assert-action@aa0067e01f0f6545c31755d6ca128c5a3a14f6bf # v2.0.0
+      with:
+        expected: failure
+        actual: ${{ steps.verify-up-invalid-namespace.outcome }}
+
+    - name: "verify-up: missing resource"
+      id: verify-up-missing-resource
+      uses: ./verify-up
+      continue-on-error: true
+      with:
+        kubernetes-context: ${{ steps.create-context.outputs.context-name }}
+        namespace: apps-actions-kubernetes
+        flux-resource: helmrelease/non-existing-release
+        timeout: 30s
+
+    - name: Assert verify-up missing resource status
+      uses: nick-fields/assert-action@aa0067e01f0f6545c31755d6ca128c5a3a14f6bf # v2.0.0
+      with:
+        expected: failure
+        actual: ${{ steps.verify-up-missing-resource.outcome }}
+
+    - name: Verify if deployment is ready (happy-flow)
+      id: verify-up-happy
+      uses: ./verify-up
+      with:
+        kubernetes-context: ${{ steps.create-context.outputs.context-name }}
+        namespace: apps-actions-kubernetes
+        flux-resource: helmrelease/echo-server-release
+
+    - name: Assert verify-up happy flow status
+      uses: nick-fields/assert-action@aa0067e01f0f6545c31755d6ca128c5a3a14f6bf # v2.0.0
+      with:
+        expected: success
+        actual: ${{ steps.verify-up-happy.outcome }}
 
   check-workflow-status:
     runs-on: kubernetes-runner

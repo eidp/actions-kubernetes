@@ -1,0 +1,173 @@
+name: 'Verify Up'
+description: |
+  This actions verifies whether the deployment specified in by the provided inputs is up and running.
+  It checks the status of the deployment in the specified Kubernetes namespace.
+  
+  A kubernetes context must already be configured prior to using this action.
+  Checkout the [Create Kubernetes context](./create-context) action to create and configure a kubernetes context.
+
+author: EIDP
+
+inputs:
+  kubernetes-context:
+    description: 'The name of the Kubernetes context to use for verification.'
+    required: true
+    default: ''
+  namespace:
+    description: 'The Kubernetes namespace where the deployment is located.'
+    required: true
+    default: ''
+  environment:
+    description: 'The environment to verify (e.g. development, staging, production).'
+    required: false
+    default: 'development'
+  flux-resource:
+    description: 'The Flux resource path of the deployment to verify (e.g. helmreleases/my-release or kustomization/my-release). If not provided, the action will attempt to verify all deployments in the specified namespace.a'
+    required: false
+    default: ''
+  chart-version:
+    description: 'Specify the chart-version input in case you want to verify if a specific version of a Helm chart is up. If not provided, the action will succeed if any deployment is up in the namespace. This input only works when the `flux-resource` input is also provided.'
+    required: false
+    default: ''
+  timeout:
+    description: 'The time to wait for the deployment to be completed successfully. After the timeout is reached, the job will fail.'
+    required: false
+    default: '3m'
+  pod-selector:
+    description: |
+      For namespaces containing multiple deployments, you can specify a pod selector to ensure that only pods belonging
+      to this deployment are evaluated for successful deployment.
+      The pod selector uses label selectors, such as app=my-app.
+      For advanced usage, refer to the Kubernetes documentation: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#list-and-watch-filtering
+    required: false
+    default: ''
+  important-workloads:
+    description: |
+      Space-separated list of resources for which logs should be displayed during the verify step,
+      such as `deploy/my-server` or `job/my-job`.
+    required: false
+    default: ''
+
+runs:
+  using: 'composite'
+  steps:
+    - name: verify connectivity
+      shell: bash
+      run: |
+        echo "::group::Verifying Kubernetes connectivity"
+
+        kubectl config use-context "${{ inputs.kubernetes-context }}"
+
+        echo "Using context: $(kubectl config current-context)"
+        
+        kubectl auth whoami &>/dev/null
+        if [ $? -ne 0 ]; then
+          echo "❌ Cannot connect to the cluster using context '${{ inputs.kubernetes-context }}'"
+          echo ::group::Kubectl Config
+          kubectl config view
+          echo ::endgroup::
+          exit 1
+        fi
+        
+        if ! kubectl get namespace "${{ inputs.namespace }}" &>/dev/null; then
+          echo "❌ Namespace '${{ inputs.namespace }}' does not exist"
+          kubectl get namespaces
+          exit 1
+        fi
+        
+        if ! kubectl auth can-i get pods --namespace "${{ inputs.namespace }}" &>/dev/null; then
+          echo "❌ Insufficient permissions to access pods in namespace '${{ inputs.namespace }}'"
+
+          echo ::group::Current Permissions
+          kubectl auth can-i --list --namespace "${{ inputs.namespace }}"
+          echo ::endgroup::
+          exit 1
+        fi
+
+        echo "::endgroup::"
+    - name: Verify deployment is up
+      shell: bash
+      run: |
+        if [ -n "${{ inputs.flux-resource }}" ]; then
+          echo "::group::Verifying Flux resource '${{ inputs.flux-resource }}' in namespace '${{ inputs.namespace }}'"
+
+          # Verify the Flux resource exists
+          if ! kubectl get "${{ inputs.flux-resource }}" --namespace "${{ inputs.namespace }}" &>/dev/null; then
+            echo -e "\e[1;31mERROR ❌ Flux resource '${{ inputs.flux-resource }}' does not exist in namespace '${{ inputs.namespace }}'"
+            exit 1
+          fi
+
+          kubectl wait --for=condition=Ready --timeout="${{ inputs.timeout }}" "${{ inputs.flux-resource }}" --namespace "${{ inputs.namespace }}" || WAIT_FOR_STATUS_EXIT_CODE=$?
+
+          if [[ $WAIT_FOR_STATUS_EXIT_CODE -ne 0 ]]; then
+            echo "\e[1;31mERROR ❌ Flux resource '${{ inputs.flux-resource }}' is not ready in namespace '${{ inputs.namespace }}' within timeout '${{ inputs.timeout }}'"
+            exit 1
+          fi
+
+          echo "✅ Flux resource '${{ inputs.flux-resource }}' in namespace '${{ inputs.namespace }}' is ready."
+          # If chart-version is specified, verify the deployed version
+          if [ -n "${{ inputs.chart-version }}" ]; then
+              kubectl wait --for=jsonpath='{.status.history[0].chartVersion}'="${{ inputs.chart-version }}" --timeout="${{ inputs.timeout }}" "${{ inputs.flux-resource }}" --namespace "${{ inputs.namespace }}" || VERSION_CHECK_EXIT_CODE=$?
+              if [[ $VERSION_CHECK_EXIT_CODE -ne 0 ]]; then
+                DEPLOYED_VERSION=$(kubectl -n "${{ inputs.namespace }}" get "${{ inputs.flux-resource }}" -ojsonpath='{.status.history[0].chartVersion}')
+                echo -e "\e[1;31mERROR ❌ Deployed Helm Chart has version: $DEPLOYED_VERSION, expected version: ${{ inputs.chart-version }}"
+                exit 1
+              fi
+              echo "✅ Helm Chart with version: '${{ inputs.chart-version }}' is deployed in Flux resource '${{ inputs.flux-resource }}'."
+          fi
+          echo "::endgroup::"
+        else
+          echo "::group::Verifying whether flux resources in namespace '${{ inputs.namespace }}'"
+
+          # Verify all flux resources are ready
+          HELMRELEASES=$(kubectl get hr --namespace "${{ inputs.namespace }}" -o name 2>/dev/null | tr "\n" " ")
+          KUSTOMIZATIONS=$(kubectl get ks --namespace "${{ inputs.namespace }}" -o name 2>/dev/null | tr "\n" " ")
+
+          if [ -z "$HELMRELEASES" ] && [ -z "$KUSTOMIZATIONS" ]; then
+            echo "⚠️ No HelmReleases or Kustomizations found in namespace '${{ inputs.namespace }}'"
+            echo "::endgroup::"
+            exit 0
+          fi
+
+          kubectl wait --for=condition=Ready --timeout="${{ inputs.timeout }}" $HELMRELEASES $KUSTOMIZATIONS --namespace "${{ inputs.namespace }}" 2>/dev/null || WAIT_EXIT_CODE=$?
+          if [ "${WAIT_EXIT_CODE:-0}" -ne 0 ]; then
+            echo -e "\e[1;31mERROR ❌ Not all flux resources are ready in namespace '${{ inputs.namespace }}' within timeout '${{ inputs.timeout }}'"
+            echo ::group:: HelmReleases and Kustomizations status
+            if [ -n "$HELMRELEASES" ]; then
+              echo "HelmReleases status:"
+              for hr in $HELMRELEASES; do
+                kubectl get "$hr" --namespace "${{ inputs.namespace }}" -o yaml | yq '.status'
+              done
+            else
+              echo "No HelmReleases found in namespace '${{ inputs.namespace }}'"
+            fi
+            echo "Kustomizations:"
+            if [ -n "$KUSTOMIZATIONS" ]; then
+              echo "Kustomizations status:"
+              for ks in $KUSTOMIZATIONS; do
+                kubectl get "$ks" --namespace "${{ inputs.namespace }}" -o yaml | yq '.status'
+              done
+            else
+              echo "No Kustomizations found in namespace '${{ inputs.namespace }}'"
+            fi
+            echo ::endgroup::
+            exit 1
+          fi
+
+          echo "✅ All deployments are available in namespace '${{ inputs.namespace }}'"
+
+          echo "::endgroup::"
+        fi
+
+    - name: Kubernetes namespace report
+      uses: jupyterhub/action-k8s-namespace-report@ccc0e3c37860245f3906e3857df01b0a53f9c3f8 # v1.2.0
+      with:
+        namespace: ${{ inputs.namespace }}
+        pod-selector: ${{ inputs.pod-selector }}
+        important-workloads: ${{ inputs.important_workloads }}
+      if: always()
+
+    - name: Generate GitHub summary
+      shell: bash
+      run: |
+        echo TODO
