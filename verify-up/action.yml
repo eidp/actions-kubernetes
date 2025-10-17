@@ -17,10 +17,6 @@ inputs:
     description: 'The Kubernetes namespace where the deployment is located.'
     required: true
     default: ''
-  environment:
-    description: 'The environment to verify (e.g. development, staging, production).'
-    required: false
-    default: 'development'
   flux-resource:
     description: 'The Flux resource path of the deployment to verify (e.g. helmreleases/my-release or kustomization/my-release). If not provided, the action will attempt to verify all deployments in the specified namespace.a'
     required: false
@@ -86,6 +82,7 @@ runs:
 
         echo "::endgroup::"
     - name: Verify deployment is up
+      id: verify-deployment
       shell: bash
       run: |
         if [ -n "${{ inputs.flux-resource }}" ]; then
@@ -94,6 +91,7 @@ runs:
           # Verify the Flux resource exists
           if ! kubectl get "${{ inputs.flux-resource }}" --namespace "${{ inputs.namespace }}" &>/dev/null; then
             echo -e "\e[1;31mERROR ❌ Flux resource '${{ inputs.flux-resource }}' does not exist in namespace '${{ inputs.namespace }}'"
+            echo "[]" > "${{ github.workspace }}/deployment-status.json"
             exit 1
           fi
 
@@ -101,6 +99,7 @@ runs:
 
           if [[ $WAIT_FOR_STATUS_EXIT_CODE -ne 0 ]]; then
             echo "\e[1;31mERROR ❌ Flux resource '${{ inputs.flux-resource }}' is not ready in namespace '${{ inputs.namespace }}' within timeout '${{ inputs.timeout }}'"
+            kubectl get "${{ inputs.flux-resource }}" --namespace "${{ inputs.namespace }}" -o json | jq -r '[{name: .metadata.name, type: .kind, ready: (.status.conditions[] | select(.type=="Ready") | .status), message: (.status.conditions[] | select(.type=="Ready") | .message // "Not Ready")}]' > "${{ github.workspace }}/deployment-status.json"
             exit 1
           fi
 
@@ -111,10 +110,14 @@ runs:
               if [[ $VERSION_CHECK_EXIT_CODE -ne 0 ]]; then
                 DEPLOYED_VERSION=$(kubectl -n "${{ inputs.namespace }}" get "${{ inputs.flux-resource }}" -ojsonpath='{.status.history[0].chartVersion}')
                 echo -e "\e[1;31mERROR ❌ Deployed Helm Chart has version: $DEPLOYED_VERSION, expected version: ${{ inputs.chart-version }}"
+                kubectl get "${{ inputs.flux-resource }}" --namespace "${{ inputs.namespace }}" -o json | jq -r '[{name: .metadata.name, type: .kind, ready: (.status.conditions[] | select(.type=="Ready") | .status), message: "Version mismatch: deployed \('"$DEPLOYED_VERSION"'), expected ${{ inputs.chart-version }}"}]' > "${{ github.workspace }}/deployment-status.json"
                 exit 1
               fi
               echo "✅ Helm Chart with version: '${{ inputs.chart-version }}' is deployed in Flux resource '${{ inputs.flux-resource }}'."
           fi
+
+          # Collect deployment status for summary
+          kubectl get "${{ inputs.flux-resource }}" --namespace "${{ inputs.namespace }}" -o json | jq -r '[{name: .metadata.name, type: .kind, ready: (.status.conditions[] | select(.type=="Ready") | .status), message: (.status.conditions[] | select(.type=="Ready") | .message // "Ready")}]' > "${{ github.workspace }}/deployment-status.json"
           echo "::endgroup::"
         else
           echo "::group::Verifying whether flux resources in namespace '${{ inputs.namespace }}'"
@@ -125,6 +128,7 @@ runs:
 
           if [ -z "$HELMRELEASES" ] && [ -z "$KUSTOMIZATIONS" ]; then
             echo "⚠️ No HelmReleases or Kustomizations found in namespace '${{ inputs.namespace }}'"
+            echo "[]" > "${{ github.workspace }}/deployment-status.json"
             echo "::endgroup::"
             exit 0
           fi
@@ -151,10 +155,31 @@ runs:
               echo "No Kustomizations found in namespace '${{ inputs.namespace }}'"
             fi
             echo ::endgroup::
+
+            # Collect deployment status for summary (failure case)
+            {
+              if [ -n "$HELMRELEASES" ]; then
+                kubectl get hr --namespace "${{ inputs.namespace }}" -o json | jq -r '.items[] | {name: .metadata.name, type: .kind, ready: (.status.conditions[] | select(.type=="Ready") | .status), message: (.status.conditions[] | select(.type=="Ready") | .message // "Not Ready")}'
+              fi
+              if [ -n "$KUSTOMIZATIONS" ]; then
+                kubectl get ks --namespace "${{ inputs.namespace }}" -o json | jq -r '.items[] | {name: .metadata.name, type: .kind, ready: (.status.conditions[] | select(.type=="Ready") | .status), message: (.status.conditions[] | select(.type=="Ready") | .message // "Not Ready")}'
+              fi
+            } | jq -s '.' > "${{ github.workspace }}/deployment-status.json"
+
             exit 1
           fi
 
           echo "✅ All deployments are available in namespace '${{ inputs.namespace }}'"
+
+          # Collect deployment status for summary
+          {
+            if [ -n "$HELMRELEASES" ]; then
+              kubectl get hr --namespace "${{ inputs.namespace }}" -o json | jq -r '.items[] | {name: .metadata.name, type: .kind, ready: (.status.conditions[] | select(.type=="Ready") | .status), message: (.status.conditions[] | select(.type=="Ready") | .message // "Ready")}'
+            fi
+            if [ -n "$KUSTOMIZATIONS" ]; then
+              kubectl get ks --namespace "${{ inputs.namespace }}" -o json | jq -r '.items[] | {name: .metadata.name, type: .kind, ready: (.status.conditions[] | select(.type=="Ready") | .status), message: (.status.conditions[] | select(.type=="Ready") | .message // "Ready")}'
+            fi
+          } | jq -s '.' > "${{ github.workspace }}/deployment-status.json"
 
           echo "::endgroup::"
         fi
@@ -169,5 +194,51 @@ runs:
 
     - name: Generate GitHub summary
       shell: bash
+      if: always()
       run: |
-        echo TODO
+        {
+          # Show status header with icon
+          if [ "${{ steps.verify-deployment.outcome }}" == "success" ]; then
+            echo "## ✅ Deployment Verification Successful"
+          else
+            echo "## ❌ Deployment Verification Failed"
+          fi
+          echo ""
+
+          echo "### Verification Details"
+          echo "- **Kubernetes Context**: \`${{ inputs.kubernetes-context }}\`"
+          echo "- **Namespace**: \`${{ inputs.namespace }}\`"
+
+          if [ -n "${{ inputs.flux-resource }}" ]; then
+            echo "- **Flux Resource**: \`${{ inputs.flux-resource }}\`"
+            if [ -n "${{ inputs.chart-version }}" ]; then
+              echo "- **Chart Version**: \`${{ inputs.chart-version }}\`"
+            fi
+          else
+            echo "- **Scope**: All Flux resources in namespace"
+          fi
+
+          echo "- **Timeout**: \`${{ inputs.timeout }}\`"
+
+          # Display deployment status
+          if [ -f "${{ github.workspace }}/deployment-status.json" ]; then
+            DEPLOYMENT_COUNT=$(jq 'length' "${{ github.workspace }}/deployment-status.json")
+            if [ "$DEPLOYMENT_COUNT" -gt 0 ]; then
+              echo ""
+              echo "### Deployment Status"
+              echo ""
+              echo "| Resource | Type | Status | Message |"
+              echo "|----------|------|--------|---------|"
+
+              jq -r '.[] | "| \(.name) | \(.type) | \(.ready // "Unknown") | \(.message // "N/A") |"' "${{ github.workspace }}/deployment-status.json"
+            fi
+          fi
+
+          if [ -n "${{ inputs.pod-selector }}" ]; then
+            echo ""
+            echo "### Pod Selector"
+            echo "\`\`\`"
+            echo "${{ inputs.pod-selector }}"
+            echo "\`\`\`"
+          fi
+        } >> $GITHUB_STEP_SUMMARY

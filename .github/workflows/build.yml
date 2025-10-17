@@ -103,8 +103,8 @@ jobs:
         expected: failure
         actual: ${{ steps.verify-up-missing-resource.outcome }}
 
-    - name: Verify if deployment is ready (happy-flow)
-      id: verify-up-happy
+    - name: "verify-up: with flux resource (happy-flow)"
+      id: verify-up-with-resource
       uses: ./verify-up
       with:
         kubernetes-context: ${{ steps.create-context.outputs.context-name }}
@@ -115,7 +115,20 @@ jobs:
       uses: nick-fields/assert-action@aa0067e01f0f6545c31755d6ca128c5a3a14f6bf # v2.0.0
       with:
         expected: success
-        actual: ${{ steps.verify-up-happy.outcome }}
+        actual: ${{ steps.verify-up-with-resource.outcome }}
+
+    - name: "verify-up: no flux resource (happy-flow)"
+      id: verify-up-no-flux-resource
+      uses: ./verify-up
+      with:
+        kubernetes-context: ${{ steps.create-context.outputs.context-name }}
+        namespace: apps-actions-kubernetes
+
+    - name: Assert verify-up happy flow status
+      uses: nick-fields/assert-action@aa0067e01f0f6545c31755d6ca128c5a3a14f6bf # v2.0.0
+      with:
+        expected: success
+        actual: ${{ steps.verify-up-no-flux-resource.outcome }}
 
   check-workflow-status:
     runs-on: kubernetes-runner
