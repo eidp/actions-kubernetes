@@ -1,0 +1,95 @@
+name: 'Create Kubernetes context'
+description: >
+  Create a kubernetes context. The context will be created using the provided API server URL and certificate authority data.
+
+  For authentication, the action uses a [GitHub OIDC token](https://docs.github.com/en/actions/concepts/security/openid-connect#overview-of-openid-connect-oidc)
+  to request a short-lived token from GitHub's OIDC provider.
+  
+  This action requires that your Kubernetes cluster is configured to trust tokens issued by GitHub's OIDC provider.
+
+  In order to request a token, this action requires the following permissions:
+
+  ```yaml
+  permissions:
+    id-token: write
+    contents: read
+  ```
+
+author: EIDP
+
+inputs:
+  environment:
+    description: 'The environment to create the context for (e.g. development, staging, production).'
+    required: false
+    default: 'development'
+  api-server:
+    description: 'The API server URL for the Kubernetes cluster.'
+    required: true
+    default: ''
+  certificate-authority-data:
+    description: 'The base64 encoded certificate authority data for the Kubernetes cluster.'
+    required: true
+    default: ''
+  kubectl-version:
+    description: 'The version of kubectl to use.'
+    required: false
+    default: 'latest'
+
+outputs:
+  context-name:
+    description: 'The name of the created Kubernetes context.'
+    value: ${{ steps.create-context.outputs.context-name }}
+
+runs:
+  using: 'composite'
+  steps:
+  - name: Install kubectl
+    uses: azure/setup-kubectl@776406bce94f63e41d621b960d78ee25c8b76ede # v4.0.1
+    with:
+      version: ${{ inputs.kubectl-version }}
+
+  - name: Create OIDC Token
+    shell: bash
+    id: create-oidc-token
+    run: |
+      echo ::group::Create GitHub OIDC token
+      AUDIENCE="kubernetes"
+      OIDC_URL_WITH_AUDIENCE="$ACTIONS_ID_TOKEN_REQUEST_URL&audience=$AUDIENCE"
+      ID_TOKEN=$(curl \
+        -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+        -H "Accept: application/json; api-version=2.0" \
+        "$OIDC_URL_WITH_AUDIENCE" | jq -r .value)
+      echo "::add-mask::${ID_TOKEN}"
+      echo "id-token=${ID_TOKEN}" >> $GITHUB_OUTPUT
+      echo "::endgroup::"
+
+  - name: Create Kubernetes context
+    shell: bash
+    id: create-context
+    run: |
+      echo ::group::Creating kubernetes context for environment '${{ inputs.environment }}'
+      # Decode the base64 encoded certificate authority data
+      echo "${{ inputs.certificate-authority-data }}" | base64 -d > "${{ github.workspace }}/ca.crt"
+
+      # Create kubeconfig file
+      kubectl config set-cluster ${{ inputs.environment }} --server="${{ inputs.api-server }}" --certificate-authority="${{ github.workspace }}/ca.crt" --embed-certs=true
+      kubectl config set-credentials github-actions --token="${{ steps.create-oidc-token.outputs.id-token }}"
+      kubectl config set-context ${{ inputs.environment }} --cluster=${{ inputs.environment }} --user=github-actions
+      kubectl config use-context ${{ inputs.environment }}
+
+      echo "context-name=${{ inputs.environment }}" >> $GITHUB_OUTPUT
+      echo "::endgroup::"
+
+  - name: Generate GitHub summary
+    shell: bash
+    run: |
+      echo ::group::Generating GitHub summary
+      {
+        echo "## Kubernetes Context Created"
+        echo ""
+        echo "### Context Details"
+        echo "- **Context Name**: \`${{ inputs.environment }}\`"
+        echo "- **API Server**: \`${{ inputs.api-server }}\`"
+        echo "- **Cluster Name**: \`${{ inputs.environment }}\`"
+      } >> $GITHUB_STEP_SUMMARY
+      echo "::endgroup::"
