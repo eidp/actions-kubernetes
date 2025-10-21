@@ -359,7 +359,7 @@ runs:
         echo "| **Namespace** | \`${{ steps.generate-names.outputs.namespace }}\` |"
         echo "| **OCIRepository** | \`${{ steps.generate-names.outputs.oci-repository-name }}\` |"
         echo "| **Kustomization** | \`${{ steps.generate-names.outputs.kustomization-name }}\` |"
-        echo "| **Git Branch** | \`${{ github.ref_name }}\` |"
+        echo "| **Git Branch** | \`${{ github.head_ref || github.ref_name }}\` |"
 
         # Show preview URL if available
         if [ -n "${{ steps.discover-url.outputs.preview-url }}" ]; then
