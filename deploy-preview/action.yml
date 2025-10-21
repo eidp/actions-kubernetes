@@ -270,6 +270,12 @@ runs:
 
       echo ::endgroup::
 
+  - name: wait
+    shell: bash
+    run: |
+      echo "Waiting 10 seconds for initial resources to be reconciled..."
+      sleep 10
+
   - name: Verify deployment
     id: verify-deployment
     uses: ./verify-up
