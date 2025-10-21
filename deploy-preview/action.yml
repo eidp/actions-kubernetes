@@ -172,7 +172,7 @@ runs:
       TENANT_NAME="${{ inputs.tenant-name }}"
 
       # Determine git branch
-      GIT_BRANCH="${{ github.ref_name }}"
+      GIT_BRANCH="${{ github.head_ref || github.ref_name }}"
 
       # Generate names for postBuild substitutes
       HELM_RELEASE_NAME="${CI_PREFIX}${TENANT_NAME}"
