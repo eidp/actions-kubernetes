@@ -41,6 +41,10 @@ branding:
   icon: 'cloud-upload'
 
 inputs:
+  environment:
+    description: 'The github environment used to deploy to (e.g. `pr-\$\{\{ github.event.pr \}\}`).'
+    required: true
+    default: ''
   kubernetes-context:
     description: 'The name of the Kubernetes context to use for deployment.'
     required: true
@@ -170,6 +174,7 @@ runs:
       NAMESPACE="${{ steps.generate-names.outputs.namespace }}"
       CI_PREFIX="${{ steps.generate-names.outputs.ci-prefix }}"
       TENANT_NAME="${{ inputs.tenant-name }}"
+      ENVIRONMENT="${{ inputs.environment }}"
 
       # Determine git branch
       GIT_BRANCH="${{ github.head_ref || github.ref_name }}"
@@ -245,14 +250,15 @@ runs:
         timeout: ${{ inputs.timeout }}
         postBuild:
           substitute:
-            namespace: "$NAMESPACE"
+            instanceName: "eidp"
+            clusterName: "development"
+            environmentName: "$ENVIRONMENT"
             helmReleaseName: "$HELM_RELEASE_NAME"
             releaseName: "$RELEASE_NAME"
-            clusterName: "development"
-            instanceName: "eidp"
-            objectStoreEndpoint: "https://core.fuga.cloud:8080"
             gitBranch: "$GIT_BRANCH"
+            namespace: "$NAMESPACE"
             namePrefix: "$CI_PREFIX"
+            objectStoreEndpoint: "https://core.fuga.cloud:8080"
       $CHART_VERSION_YAML
       EOF
 

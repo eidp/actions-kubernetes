@@ -173,6 +173,7 @@ jobs:
       id: deploy-preview-happy
       uses: ./deploy-preview
       with:
+        environment: 'pr-${{ github.event.number || github.ref_name }}'
         kubernetes-context: ${{ steps.create-context.outputs.context-name }}
         tenant-name: actions-kubernetes
         reference: ${{ github.event.number || github.ref_name }}
