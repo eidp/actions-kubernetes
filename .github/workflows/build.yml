@@ -127,6 +127,46 @@ jobs:
         expected: success
         actual: ${{ steps.verify-up-no-flux-resource.outcome }}
 
+    - name: "deploy-preview: happy flow"
+      id: deploy-preview-happy
+      uses: ./deploy-preview
+      with:
+        kubernetes-context: ${{ steps.create-context.outputs.context-name }}
+        tenant-name: actions-kubernetes
+        reference: ${{ github.event.number || github.ref_name }}
+        timeout: 10m
+
+    - name: Assert deploy-preview happy flow status
+      uses: nick-fields/assert-action@aa0067e01f0f6545c31755d6ca128c5a3a14f6bf # v2.0.0
+      with:
+        expected: success
+        actual: ${{ steps.deploy-preview-happy.outcome }}
+
+    - name: Assert deploy-preview outputs exist
+      uses: nick-fields/assert-action@aa0067e01f0f6545c31755d6ca128c5a3a14f6bf # v2.0.0
+      with:
+        expected: true
+        actual: ${{ steps.deploy-preview-happy.outputs.oci-repository-name != '' && steps.deploy-preview-happy.outputs.kustomization-name != '' && steps.deploy-preview-happy.outputs.ci-prefix != '' }}
+
+    - name: Verify preview resources exist
+      run: |
+        echo "Verifying OCIRepository exists..."
+        kubectl get ocirepository ${{ steps.deploy-preview-happy.outputs.oci-repository-name }} -n infra-fluxcd
+
+        echo "Verifying Kustomization exists..."
+        kubectl get kustomization ${{ steps.deploy-preview-happy.outputs.kustomization-name }} -n infra-fluxcd
+
+        echo "✅ All preview resources verified"
+
+    - name: Cleanup preview deployment
+      if: always()
+      continue-on-error: true
+      run: |
+        echo "Cleaning up preview deployment resources..."
+        kubectl delete kustomization ${{ steps.deploy-preview-happy.outputs.kustomization-name }} -n infra-fluxcd --ignore-not-found=true
+        kubectl delete ocirepository ${{ steps.deploy-preview-happy.outputs.oci-repository-name }} -n infra-fluxcd --ignore-not-found=true
+        echo "✅ Cleanup complete"
+
   check-workflow-status:
     runs-on: kubernetes-runner
     permissions:

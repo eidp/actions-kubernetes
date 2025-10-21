@@ -1,0 +1,364 @@
+name: 'Deploy Preview'
+description: |
+  Deploy a preview environment to Kubernetes using FluxCD OCIRepository and Kustomization resources.
+  This action creates uniquely-named preview deployments that can coexist for multiple concurrent branches/PRs.
+  
+  Given an existing tenant definition, this action will roll out an isolated preview deployment of that tenant and its accompanying application(s).
+
+  A kubernetes context must already be configured prior to using this action.
+  Checkout the [Create Kubernetes context](../create-context) action to create and configure a kubernetes context.
+  
+  This action is intended to be used in pull request workflows to provide preview environments for testing changes before merging.
+  After the pull request is closed/merged, the preview deployment can be cleaned up using the [Teardown Preview](../teardown-preview) action.
+  
+  The following triggers are recommended for pull request workflows:
+
+  ```yaml
+  on:
+    pull_request:
+      types: [opened, synchronize, reopened]
+  ```  
+
+  To show the preview deployment URL in the pull request, use the `preview-url` output of this action and add it to the `environment` key of the workflow job.
+
+  ```yaml
+  environment:
+    name: pr-\$\{\{ github.event.number \}\}
+    url: \$\{\{ steps.deploy-preview.outputs.preview-url \}\}
+  ```
+  
+  To prevent multiple preview deployments for the same PR, it is recommended to add a workflow-level or job-level concurrency group:
+
+  ```yaml
+    concurrency:
+      group: pr-\$\{\{ github.event.number \}\}
+      cancel-in-progress: false
+  ```
+
+author: EIDP
+branding:
+  color: 'blue'
+  icon: 'cloud-upload'
+
+inputs:
+  kubernetes-context:
+    description: 'The name of the Kubernetes context to use for deployment.'
+    required: true
+    default: ''
+  tenant-name:
+    description: 'The tenant name used to identify the tenant definition in the OCI repository.'
+    required: true
+    default: ''
+  reference:
+    description: 'A reference used to uniquely identify this preview environment. Among other things, it is used to generate a resource name prefix. Typically this would be the Pull Request number (`github.pr.number`) or branch reference (`github.branch_ref`).'
+    required: true
+  ci-prefix-length:
+    description: 'The number of characters from the reference to include in the CI prefix.'
+    required: false
+    default: '16'
+  oci-repository-secret:
+    description: 'The name of the secret for authenticating to the OCI repository.'
+    required: false
+    default: 'eidp-harbor-pull-credential'
+  chart-version:
+    description: 'Optional chart version override.'
+    required: false
+    default: ''
+  timeout:
+    description: 'The time to wait for the deployment to be completed successfully.'
+    required: false
+    default: '5m'
+
+outputs:
+  oci-repository-name:
+    description: 'The name of the created OCIRepository resource.'
+    value: ${{ steps.create-resources.outputs.oci-repository-name }}
+  kustomization-name:
+    description: 'The name of the created Kustomization resource.'
+    value: ${{ steps.create-resources.outputs.kustomization-name }}
+  namespace:
+    description: 'The target namespace for the deployment.'
+    value: ${{ steps.create-resources.outputs.namespace }}
+  ci-prefix:
+    description: 'The generated CI prefix used for resource naming.'
+    value: ${{ steps.generate-names.outputs.ci-prefix }}
+  preview-url:
+    description: 'The discovered preview deployment URL (empty if not found).'
+    value: ${{ steps.discover-url.outputs.preview-url }}
+
+runs:
+  using: 'composite'
+  steps:
+  - name: Verify connectivity
+    shell: bash
+    run: |
+      echo ::group::Verifying Kubernetes connectivity
+
+      kubectl config use-context "${{ inputs.kubernetes-context }}"
+      echo "Using context: $(kubectl config current-context)"
+
+      kubectl auth whoami &>/dev/null
+      if [ $? -ne 0 ]; then
+        echo "❌ Cannot connect to the cluster using context '${{ inputs.kubernetes-context }}'"
+        echo ::group::Kubectl Config
+        kubectl config view
+        echo ::endgroup::
+        exit 1
+      fi
+
+      echo "✅ Successfully connected to cluster"
+      echo ::endgroup::
+
+  - name: Generate names
+    id: generate-names
+    shell: bash
+    run: |
+      echo ::group::Generating resource names
+
+      # Get the reference for this preview environment
+      REFERENCE="${{ inputs.reference }}"
+      echo "Using reference: $REFERENCE"
+
+      # Generate CI prefix
+      CI_PREFIX_LENGTH=${{ inputs.ci-prefix-length }}
+      CI_PREFIX="ci-${REFERENCE:0:$CI_PREFIX_LENGTH}-"
+      # Sanitize: lowercase and replace invalid characters
+      CI_PREFIX=$(echo "$CI_PREFIX" | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]-')
+      echo "Generated CI prefix: $CI_PREFIX"
+
+      # Generate resource names
+      TENANT_NAME="${{ inputs.tenant-name }}"
+      OCI_REPO_NAME="${CI_PREFIX}${TENANT_NAME}-oci"
+      KUSTOMIZATION_NAME="${CI_PREFIX}${TENANT_NAME}-tenant"
+      NAMESPACE="${CI_PREFIX}${TENANT_NAME}"
+
+      # Truncate if necessary (Kubernetes limit is 63 chars)
+      MAX_LENGTH=63
+      if [ ${#OCI_REPO_NAME} -gt $MAX_LENGTH ]; then
+        OCI_REPO_NAME="${OCI_REPO_NAME:0:$MAX_LENGTH}"
+        echo "⚠️ OCIRepository name truncated to $MAX_LENGTH characters: $OCI_REPO_NAME"
+      fi
+      if [ ${#KUSTOMIZATION_NAME} -gt $MAX_LENGTH ]; then
+        KUSTOMIZATION_NAME="${KUSTOMIZATION_NAME:0:$MAX_LENGTH}"
+        echo "⚠️ Kustomization name truncated to $MAX_LENGTH characters: $KUSTOMIZATION_NAME"
+      fi
+      if [ ${#NAMESPACE} -gt $MAX_LENGTH ]; then
+        NAMESPACE="${NAMESPACE:0:$MAX_LENGTH}"
+        echo "⚠️ Namespace truncated to $MAX_LENGTH characters: $NAMESPACE"
+      fi
+
+      echo "OCIRepository name: $OCI_REPO_NAME"
+      echo "Kustomization name: $KUSTOMIZATION_NAME"
+      echo "Namespace: $NAMESPACE"
+
+      # Export to outputs
+      echo "ci-prefix=$CI_PREFIX" >> $GITHUB_OUTPUT
+      echo "oci-repository-name=$OCI_REPO_NAME" >> $GITHUB_OUTPUT
+      echo "kustomization-name=$KUSTOMIZATION_NAME" >> $GITHUB_OUTPUT
+      echo "namespace=$NAMESPACE" >> $GITHUB_OUTPUT
+
+      echo ::endgroup::
+
+  - name: Create resources
+    id: create-resources
+    shell: bash
+    run: |
+      echo ::group::Creating FluxCD resources
+
+      OCI_REPO_NAME="${{ steps.generate-names.outputs.oci-repository-name }}"
+      KUSTOMIZATION_NAME="${{ steps.generate-names.outputs.kustomization-name }}"
+      NAMESPACE="${{ steps.generate-names.outputs.namespace }}"
+      CI_PREFIX="${{ steps.generate-names.outputs.ci-prefix }}"
+      TENANT_NAME="${{ inputs.tenant-name }}"
+
+      # Determine git branch
+      GIT_BRANCH="${{ github.ref_name }}"
+
+      # Generate names for postBuild substitutes
+      HELM_RELEASE_NAME="${CI_PREFIX}${TENANT_NAME}"
+      RELEASE_NAME="${CI_PREFIX}${TENANT_NAME}-tenant"
+
+      # Create OCIRepository manifest
+      echo "Creating OCIRepository: $OCI_REPO_NAME"
+
+      KUBECTL_OUTPUT=$(cat <<EOF | kubectl apply -f - 2>&1
+      ---
+      apiVersion: source.toolkit.fluxcd.io/v1
+      kind: OCIRepository
+      metadata:
+        name: $OCI_REPO_NAME
+        namespace: infra-fluxcd
+        labels:
+          app.kubernetes.io/managed-by: github-actions
+          app.kubernetes.io/created-by: deploy-preview
+          preview-deployment: "true"
+          ci-prefix: "$CI_PREFIX"
+      spec:
+        interval: 5m
+        url: oci://cr.eidp.io/tenant-definitions/$TENANT_NAME
+        ref:
+          tag: latest
+        secretRef:
+          name: ${{ inputs.oci-repository-secret }}
+      EOF
+      )
+
+      if [ $? -eq 0 ]; then
+        echo "✅ OCIRepository created successfully"
+        echo "$KUBECTL_OUTPUT"
+      else
+        echo "❌ Failed to create OCIRepository"
+        echo "$KUBECTL_OUTPUT"
+        exit 1
+      fi
+
+      # Create Kustomization manifest
+      echo "Deploying preview tenant: $KUSTOMIZATION_NAME"
+
+      # Build postBuild substitute section
+      CHART_VERSION_YAML=""
+      if [ -n "${{ inputs.chart-version }}" ]; then
+        CHART_VERSION_YAML="      chartVersion: \"${{ inputs.chart-version }}\""
+      fi
+
+      KUBECTL_OUTPUT=$(cat <<EOF | kubectl apply -f - 2>&1
+      ---
+      apiVersion: kustomize.toolkit.fluxcd.io/v1
+      kind: Kustomization
+      metadata:
+        name: $KUSTOMIZATION_NAME
+        namespace: infra-fluxcd
+        labels:
+          app.kubernetes.io/managed-by: github-actions
+          app.kubernetes.io/created-by: deploy-preview
+          preview-deployment: "true"
+          ci-prefix: "$CI_PREFIX"
+      spec:
+        serviceAccountName: flux-deployment-controller
+        interval: 10m
+        sourceRef:
+          kind: OCIRepository
+          name: $OCI_REPO_NAME
+        path: ./
+        prune: true
+        wait: true
+        timeout: ${{ inputs.timeout }}
+        postBuild:
+          substitute:
+            namespace: "$NAMESPACE"
+            helmReleaseName: "$HELM_RELEASE_NAME"
+            releaseName: "$RELEASE_NAME"
+            clusterName: "development"
+            instanceName: "eidp"
+            objectStoreEndpoint: "https://core.fuga.cloud:8080"
+            gitBranch: "$GIT_BRANCH"
+            namePrefix: "$CI_PREFIX"
+      $CHART_VERSION_YAML
+      EOF
+      )
+
+      if [ $? -eq 0 ]; then
+        echo "✅ Kustomization created successfully"
+        echo "$KUBECTL_OUTPUT"
+      else
+        echo "❌ Failed to create Kustomization"
+        echo "$KUBECTL_OUTPUT"
+        exit 1
+      fi
+
+      # Export outputs
+      echo "oci-repository-name=$OCI_REPO_NAME" >> $GITHUB_OUTPUT
+      echo "kustomization-name=$KUSTOMIZATION_NAME" >> $GITHUB_OUTPUT
+      echo "namespace=$NAMESPACE" >> $GITHUB_OUTPUT
+
+      echo ::endgroup::
+
+  - name: Verify deployment
+    id: verify-deployment
+    uses: ./verify-up
+    with:
+      kubernetes-context: ${{ inputs.kubernetes-context }}
+      namespace: infra-fluxcd
+      flux-resource: kustomization/${{ steps.generate-names.outputs.kustomization-name }}
+      timeout: ${{ inputs.timeout }}
+
+  - name: Discover preview URL
+    id: discover-url
+    shell: bash
+    run: |
+      echo ::group::Discovering preview URL
+
+      TARGET_NAMESPACE="${{ steps.generate-names.outputs.namespace }}"
+      PREVIEW_URL=""
+
+      # Wait a moment for ingress to be created
+      sleep 5
+
+      # Get ingresses in target namespace
+      INGRESSES=$(kubectl get ingress -n "$TARGET_NAMESPACE" -o json 2>/dev/null || echo '{"items":[]}')
+      INGRESS_COUNT=$(echo "$INGRESSES" | jq '.items | length')
+
+      if [ "$INGRESS_COUNT" -gt 0 ]; then
+        echo "Found $INGRESS_COUNT ingress(es) in namespace $TARGET_NAMESPACE"
+
+        # Extract first ingress host
+        HOST=$(echo "$INGRESSES" | jq -r '.items[0].spec.rules[0].host // empty' 2>/dev/null)
+
+        if [ -n "$HOST" ]; then
+          # Check if TLS is configured
+          TLS=$(echo "$INGRESSES" | jq -r '.items[0].spec.tls // empty' 2>/dev/null)
+
+          if [ -n "$TLS" ] && [ "$TLS" != "null" ]; then
+            PREVIEW_URL="https://${HOST}"
+          else
+            PREVIEW_URL="http://${HOST}"
+          fi
+
+          echo "✅ Preview URL discovered: $PREVIEW_URL"
+        else
+          echo "⚠️ Ingress found but no host configured"
+        fi
+      else
+        echo "⚠️ No ingress resources found in namespace $TARGET_NAMESPACE"
+        echo "Preview deployment is ready but no URL is available"
+      fi
+
+      echo "preview-url=$PREVIEW_URL" >> $GITHUB_OUTPUT
+      echo ::endgroup::
+
+  - name: Generate GitHub summary
+    shell: bash
+    if: always()
+    run: |
+      {
+        # Show status header with icon
+        if [ "${{ steps.verify-deployment.outcome }}" == "success" ]; then
+          echo "## ✅ Preview deployment successful"
+        else
+          echo "## ❌ Preview deployment failed"
+        fi
+        echo ""
+
+        echo "### Deployment details"
+        echo ""
+        echo "| Field | Value |"
+        echo "|-------|-------|"
+        echo "| **Tenant Name** | \`${{ inputs.tenant-name }}\` |"
+        echo "| **CI Prefix** | \`${{ steps.generate-names.outputs.ci-prefix }}\` |"
+        echo "| **Namespace** | \`${{ steps.generate-names.outputs.namespace }}\` |"
+        echo "| **OCIRepository** | \`${{ steps.generate-names.outputs.oci-repository-name }}\` |"
+        echo "| **Kustomization** | \`${{ steps.generate-names.outputs.kustomization-name }}\` |"
+        echo "| **Git Branch** | \`${{ github.ref_name }}\` |"
+
+        # Show preview URL if available
+        if [ -n "${{ steps.discover-url.outputs.preview-url }}" ]; then
+          echo ""
+          echo "### 🌐 Preview URL"
+          echo ""
+          echo "**[${{ steps.discover-url.outputs.preview-url }}](${{ steps.discover-url.outputs.preview-url }})**"
+        fi
+
+        echo ""
+        echo "---"
+        echo "*Deployment timestamp: $(date -u '+%Y-%m-%d %H:%M:%S UTC')*"
+      } >> $GITHUB_STEP_SUMMARY
