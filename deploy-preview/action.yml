@@ -181,6 +181,9 @@ runs:
       # Create OCIRepository manifest
       echo "Creating OCIRepository: $OCI_REPO_NAME"
 
+      # Strip trailing hyphen from CI_PREFIX for label (labels can't end with hyphen)
+      CI_PREFIX_LABEL="${CI_PREFIX%-}"
+
       cat <<EOF | kubectl apply -f -
       ---
       apiVersion: source.toolkit.fluxcd.io/v1
@@ -192,7 +195,7 @@ runs:
           app.kubernetes.io/managed-by: github-actions
           app.kubernetes.io/created-by: deploy-preview
           preview-deployment: "true"
-          ci-prefix: "$CI_PREFIX"
+          ci-prefix: "$CI_PREFIX_LABEL"
       spec:
         interval: 5m
         url: oci://cr.eidp.io/tenant-definitions/$TENANT_NAME
@@ -229,7 +232,7 @@ runs:
           app.kubernetes.io/managed-by: github-actions
           app.kubernetes.io/created-by: deploy-preview
           preview-deployment: "true"
-          ci-prefix: "$CI_PREFIX"
+          ci-prefix: "$CI_PREFIX_LABEL"
       spec:
         serviceAccountName: flux-deployment-controller
         interval: 10m
