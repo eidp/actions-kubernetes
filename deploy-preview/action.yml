@@ -57,7 +57,7 @@ inputs:
     description: 'A reference used to uniquely identify this preview environment. Among other things, it is used to generate a resource name prefix. Typically this would be the Pull Request number (`github.pr.number`) or branch reference (`github.branch_ref`).'
     required: true
   ci-prefix-length:
-    description: 'The number of characters from the reference to include in the CI prefix.'
+    description: 'The number of characters from the reference to include in the CI prefix. Should be sufficient to ensure uniqueness while keeping resource names within Kubernetes limits. Can be max 24 characters.'
     required: false
     default: '16'
   chart-version:
@@ -121,6 +121,10 @@ runs:
 
       # Generate CI prefix
       CI_PREFIX_LENGTH=${{ inputs.ci-prefix-length }}
+      if [ $CI_PREFIX_LENGTH -gt 24 ]; then
+        echo "❌ The 'ci-prefix-length' input cannot be greater than 24, but got: $CI_PREFIX_LENGTH"
+        exit 1
+      fi
       CI_PREFIX="ci-${REFERENCE:0:$CI_PREFIX_LENGTH}-"
       # Sanitize: lowercase and replace invalid characters
       CI_PREFIX=$(echo "$CI_PREFIX" | tr '[:upper:]' '[:lower:]' | tr -cd '[:alnum:]-')

@@ -175,10 +175,11 @@ jobs:
       with:
         environment: 'pr-${{ github.event.number || github.ref_name }}'
         kubernetes-context: ${{ steps.create-context.outputs.context-name }}
+        # We are deliberately using an older chart version here to test the action's ability to deploy a custom chart version.
         chart-version: '0.4.0'
         tenant-name: actions-kubernetes
         reference: ${{ github.event.number || github.ref_name }}
-        timeout: 10m
+        timeout: 5m
 
     - name: Assert deploy-preview happy flow status
       uses: nick-fields/assert-action@aa0067e01f0f6545c31755d6ca128c5a3a14f6bf # v2.0.0
