@@ -1,6 +1,6 @@
 repos:
 - repo: ssh://git@github.com/eidp/actions-common.git
-  rev: v1.1.1
+  rev: v1.2.1
   hooks:
   - id: generate-action-docs
 
