@@ -288,7 +288,6 @@ runs:
     with:
       kubernetes-context: ${{ inputs.kubernetes-context }}
       namespace: ${{ steps.generate-names.outputs.namespace }}
-      flux-resource: kustomization/${{ steps.generate-names.outputs.kustomization-name }}
       timeout: ${{ inputs.timeout }}
 
   - name: Discover preview URL
