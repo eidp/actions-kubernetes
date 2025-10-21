@@ -175,6 +175,7 @@ jobs:
       with:
         environment: 'pr-${{ github.event.number || github.ref_name }}'
         kubernetes-context: ${{ steps.create-context.outputs.context-name }}
+        chart-version: '0.4.0'
         tenant-name: actions-kubernetes
         reference: ${{ github.event.number || github.ref_name }}
         timeout: 10m
