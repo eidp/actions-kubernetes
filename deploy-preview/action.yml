@@ -181,7 +181,7 @@ runs:
       # Create OCIRepository manifest
       echo "Creating OCIRepository: $OCI_REPO_NAME"
 
-      KUBECTL_OUTPUT=$(cat <<EOF | kubectl apply -f - 2>&1
+      cat <<EOF | kubectl apply -f -
       ---
       apiVersion: source.toolkit.fluxcd.io/v1
       kind: OCIRepository
@@ -201,16 +201,13 @@ runs:
         secretRef:
           name: ${{ inputs.oci-repository-secret }}
       EOF
-      )
 
-      if [ $? -eq 0 ]; then
-        echo "✅ OCIRepository created successfully"
-        echo "$KUBECTL_OUTPUT"
-      else
+      if [ $? -ne 0 ]; then
         echo "❌ Failed to create OCIRepository"
-        echo "$KUBECTL_OUTPUT"
         exit 1
       fi
+
+      echo "✅ OCIRepository created successfully"
 
       # Create Kustomization manifest
       echo "Deploying preview tenant: $KUSTOMIZATION_NAME"
@@ -221,7 +218,7 @@ runs:
         CHART_VERSION_YAML="      chartVersion: \"${{ inputs.chart-version }}\""
       fi
 
-      KUBECTL_OUTPUT=$(cat <<EOF | kubectl apply -f - 2>&1
+      cat <<EOF | kubectl apply -f -
       ---
       apiVersion: kustomize.toolkit.fluxcd.io/v1
       kind: Kustomization
@@ -255,16 +252,13 @@ runs:
             namePrefix: "$CI_PREFIX"
       $CHART_VERSION_YAML
       EOF
-      )
 
-      if [ $? -eq 0 ]; then
-        echo "✅ Kustomization created successfully"
-        echo "$KUBECTL_OUTPUT"
-      else
+      if [ $? -ne 0 ]; then
         echo "❌ Failed to create Kustomization"
-        echo "$KUBECTL_OUTPUT"
         exit 1
       fi
+
+      echo "✅ Kustomization created successfully"
 
       # Export outputs
       echo "oci-repository-name=$OCI_REPO_NAME" >> $GITHUB_OUTPUT
