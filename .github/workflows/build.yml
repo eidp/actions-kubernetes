@@ -9,7 +9,7 @@ on:
     - main
 
 jobs:
-  test:
+  test-create-context:
     runs-on: kubernetes-runner
     permissions:
       contents: read
@@ -19,8 +19,9 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
-    - uses: ./create-context
+    - name: Create Kubernetes context
       id: create-context
+      uses: ./create-context
       with:
         environment: development
         api-server: ${{ vars.K8S_API_SERVER_DEVELOPMENT }}
@@ -49,7 +50,7 @@ jobs:
         if ! kubectl auth whoami &>/dev/null; then
           echo "❌ Cannot connect to cluster"
           exit 1
-        fi        
+        fi
         echo "✅ Successfully connected to cluster"
         echo "Authenticated as:"
         kubectl auth whoami
@@ -68,6 +69,24 @@ jobs:
       with:
         expected: success
         actual: ${{ steps.create-context.outcome }}
+
+  test-verify-up:
+    runs-on: kubernetes-runner
+    permissions:
+      contents: read
+      id-token: write
+    environment: development
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+    - name: Create Kubernetes context
+      id: create-context
+      uses: ./create-context
+      with:
+        environment: development
+        api-server: ${{ vars.K8S_API_SERVER_DEVELOPMENT }}
+        certificate-authority-data: ${{ secrets.K8S_CERTIFICATE_AUTHORITY_DATA_DEVELOPMENT }}
 
     - name: "verify-up: invalid namespace"
       id: verify-up-invalid-namespace
@@ -126,6 +145,24 @@ jobs:
       with:
         expected: success
         actual: ${{ steps.verify-up-no-flux-resource.outcome }}
+
+  test-deploy-preview:
+    runs-on: kubernetes-runner
+    permissions:
+      contents: read
+      id-token: write
+    environment: development
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+    - name: Create Kubernetes context
+      id: create-context
+      uses: ./create-context
+      with:
+        environment: development
+        api-server: ${{ vars.K8S_API_SERVER_DEVELOPMENT }}
+        certificate-authority-data: ${{ secrets.K8S_CERTIFICATE_AUTHORITY_DATA_DEVELOPMENT }}
 
     - name: "deploy-preview: happy flow"
       id: deploy-preview-happy
