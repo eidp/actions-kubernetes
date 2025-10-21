@@ -207,8 +207,8 @@ jobs:
       continue-on-error: true
       run: |
         echo "Cleaning up preview deployment resources..."
-        kubectl delete kustomization ${{ steps.deploy-preview-happy.outputs.kustomization-name }} -n infra-fluxcd --ignore-not-found=true
-        kubectl delete ocirepository ${{ steps.deploy-preview-happy.outputs.oci-repository-name }} -n infra-fluxcd --ignore-not-found=true
+        kubectl delete kustomization ${{ steps.deploy-preview-happy.outputs.kustomization-name }} -n infra-fluxcd --ignore-not-found=true 2>&1 | grep -v "Failed to watch"
+        kubectl delete ocirepository ${{ steps.deploy-preview-happy.outputs.oci-repository-name }} -n infra-fluxcd --ignore-not-found=true 2>&1 | grep -v "Failed to watch"
         echo "✅ Cleanup complete"
 
   check-workflow-status:
