@@ -275,7 +275,7 @@ runs:
     uses: ./verify-up
     with:
       kubernetes-context: ${{ inputs.kubernetes-context }}
-      namespace: infra-fluxcd
+      namespace: ${{ steps.generate-names.outputs.namespace }}
       flux-resource: kustomization/${{ steps.generate-names.outputs.kustomization-name }}
       timeout: ${{ inputs.timeout }}
 
