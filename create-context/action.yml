@@ -34,6 +34,10 @@ inputs:
     description: 'The version of kubectl to use.'
     required: false
     default: 'latest'
+  print-jwt-claims:
+    description: 'Print the JWT claims from the OIDC token for debugging purposes.'
+    required: false
+    default: 'false'
 
 outputs:
   context-name:
@@ -61,6 +65,14 @@ runs:
         "$OIDC_URL_WITH_AUDIENCE" | jq -r .value)
       echo "::add-mask::${ID_TOKEN}"
       echo "id-token=${ID_TOKEN}" >> $GITHUB_OUTPUT
+
+      # Print JWT claims if requested
+      if [ "${{ inputs.print-jwt-claims }}" = "true" ]; then
+        echo ""
+        echo "JWT Claims:"
+        echo "$ID_TOKEN" | jq -R 'split(".") | .[1] | @base64d | fromjson'
+      fi
+
       echo "::endgroup::"
 
   - name: Create Kubernetes context

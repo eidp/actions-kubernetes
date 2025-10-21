@@ -26,6 +26,7 @@ jobs:
         environment: development
         api-server: ${{ vars.K8S_API_SERVER_DEVELOPMENT }}
         certificate-authority-data: ${{ secrets.K8S_CERTIFICATE_AUTHORITY_DATA_DEVELOPMENT }}
+        print-jwt-claims: 'true'
 
     - name: Verify context created
       id: verify-context
@@ -87,6 +88,7 @@ jobs:
         environment: development
         api-server: ${{ vars.K8S_API_SERVER_DEVELOPMENT }}
         certificate-authority-data: ${{ secrets.K8S_CERTIFICATE_AUTHORITY_DATA_DEVELOPMENT }}
+        print-jwt-claims: 'true'
 
     - name: "verify-up: invalid namespace"
       id: verify-up-invalid-namespace
@@ -165,6 +167,7 @@ jobs:
         environment: development
         api-server: ${{ vars.K8S_API_SERVER_DEVELOPMENT }}
         certificate-authority-data: ${{ secrets.K8S_CERTIFICATE_AUTHORITY_DATA_DEVELOPMENT }}
+        print-jwt-claims: 'true'
 
     - name: "deploy-preview: happy flow"
       id: deploy-preview-happy
