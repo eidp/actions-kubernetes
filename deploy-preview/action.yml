@@ -60,10 +60,6 @@ inputs:
     description: 'The number of characters from the reference to include in the CI prefix.'
     required: false
     default: '16'
-  oci-repository-secret:
-    description: 'The name of the secret for authenticating to the OCI repository.'
-    required: false
-    default: 'eidp-harbor-pull-credential'
   chart-version:
     description: 'Optional chart version override.'
     required: false
@@ -189,6 +185,8 @@ runs:
       # Strip trailing hyphen from CI_PREFIX for label (labels can't end with hyphen)
       CI_PREFIX_LABEL="${CI_PREFIX%-}"
 
+      # TODO: give the "eidp-harbor-pull-credential" a more generic name, and always provision the same secret in all instances.
+      # This way we don't have to expose this implementation detail to our customers. They have no way of knowing what the secret name is.
       cat <<EOF | kubectl apply -f -
       ---
       apiVersion: source.toolkit.fluxcd.io/v1
@@ -207,7 +205,7 @@ runs:
         ref:
           tag: latest
         secretRef:
-          name: ${{ inputs.oci-repository-secret }}
+          name: eidp-harbor-pull-credential
       EOF
 
       if [ $? -ne 0 ]; then
