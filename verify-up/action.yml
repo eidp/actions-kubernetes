@@ -199,13 +199,13 @@ runs:
         {
           # Show status header with icon
           if [ "${{ steps.verify-deployment.outcome }}" == "success" ]; then
-            echo "## ✅ Deployment Verification Successful"
+            echo "## ✅ Deployment verification successful"
           else
-            echo "## ❌ Deployment Verification Failed"
+            echo "## ❌ Deployment verification failed"
           fi
           echo ""
 
-          echo "### Verification Details"
+          echo "### Verification details"
           echo "- **Kubernetes Context**: \`${{ inputs.kubernetes-context }}\`"
           echo "- **Namespace**: \`${{ inputs.namespace }}\`"
 
@@ -225,7 +225,7 @@ runs:
             DEPLOYMENT_COUNT=$(jq 'length' "${{ github.workspace }}/deployment-status.json")
             if [ "$DEPLOYMENT_COUNT" -gt 0 ]; then
               echo ""
-              echo "### Deployment Status"
+              echo "### Deployment status"
               echo ""
               echo "| Resource | Type | Status | Message |"
               echo "|----------|------|--------|---------|"
@@ -236,7 +236,7 @@ runs:
 
           if [ -n "${{ inputs.pod-selector }}" ]; then
             echo ""
-            echo "### Pod Selector"
+            echo "### Pod selector"
             echo "\`\`\`"
             echo "${{ inputs.pod-selector }}"
             echo "\`\`\`"

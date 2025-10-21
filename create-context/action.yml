@@ -97,9 +97,9 @@ runs:
     run: |
       echo ::group::Generating GitHub summary
       {
-        echo "## Kubernetes Context Created"
+        echo "## Kubernetes context created"
         echo ""
-        echo "### Context Details"
+        echo "### Context details"
         echo "- **Context Name**: \`${{ inputs.environment }}\`"
         echo "- **API Server**: \`${{ inputs.api-server }}\`"
         echo "- **Cluster Name**: \`${{ inputs.environment }}\`"
