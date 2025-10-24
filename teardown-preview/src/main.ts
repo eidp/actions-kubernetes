@@ -8,8 +8,6 @@ import {
   OCIRepository
 } from './types'
 import {
-  reconstructCiPrefix,
-  getCiPrefixLabel,
   parseAgeToSeconds,
   calculateAge,
   formatAge,
@@ -129,12 +127,13 @@ async function handleTargetedDeletion(
     `Targeting preview deployment with reference: ${inputs.reference}`
   )
 
-  const ciPrefix = reconstructCiPrefix(inputs.reference, inputs.ciPrefixLength)
-  const ciPrefixLabel = getCiPrefixLabel(ciPrefix)
+  const ciReferenceLabel = sanitizeLabelValue(inputs.reference)
 
-  core.info(`Searching for resources with ci-prefix label: ${ciPrefixLabel}`)
+  core.info(
+    `Searching for resources with ci-reference label: ${ciReferenceLabel}`
+  )
 
-  const labelSelector = `preview-deployment=true,ci-prefix=${ciPrefixLabel}`
+  const labelSelector = `eidp.com/preview-deployment=true,eidp.com/ci-reference=${ciReferenceLabel}`
 
   const kustomizationsResponse = (await customApi.listNamespacedCustomObject({
     group: 'kustomize.toolkit.fluxcd.io',
@@ -157,7 +156,7 @@ async function handleTargetedDeletion(
 
   if (kustomizationCount === 0 && ociRepoCount === 0) {
     core.info(
-      `ℹ️ No preview deployment found with reference: ${inputs.reference} (ci-prefix: ${ciPrefixLabel})`
+      `ℹ️ No preview deployment found with reference: ${inputs.reference} (ci-reference: ${ciReferenceLabel})`
     )
     outputs.skippedResources.push({
       name: inputs.reference,
@@ -176,7 +175,7 @@ async function handleTargetedDeletion(
         outputs.deletedResources.push({
           type: 'Kustomization',
           name: kust.metadata.name,
-          ciPrefix: ciPrefixLabel
+          ciPrefix: ciReferenceLabel
         })
         outputs.deletedCount++
       })
@@ -189,7 +188,7 @@ async function handleTargetedDeletion(
         outputs.deletedResources.push({
           type: 'Kustomization',
           name: kust.metadata.name,
-          ciPrefix: ciPrefixLabel
+          ciPrefix: ciReferenceLabel
         })
         outputs.deletedCount++
       }
@@ -234,7 +233,7 @@ async function handleBulkDeletion(
     version: 'v1',
     namespace: 'infra-fluxcd',
     plural: 'kustomizations',
-    labelSelector: `preview-deployment=true,github.com/repository=${repositoryLabel}`
+    labelSelector: `eidp.com/preview-deployment=true,eidp.com/repository=${repositoryLabel}`
   })) as { items: Kustomization[] }
 
   const totalCount = response.items.length
@@ -254,7 +253,7 @@ async function handleBulkDeletion(
 
   for (const kust of response.items) {
     const name = kust.metadata.name
-    const ciPrefixLabel = kust.metadata.labels['ci-prefix'] || ''
+    const ciReferenceLabel = kust.metadata.labels['eidp.com/ci-reference'] || ''
     const createdTimestamp = kust.metadata.creationTimestamp
 
     const ageSeconds = calculateAge(createdTimestamp)
@@ -271,8 +270,7 @@ async function handleBulkDeletion(
       continue
     }
 
-    const reference = ciPrefixLabel.replace(/^ci-/, '')
-    if (await isProtected(reference)) {
+    if (await isProtected(ciReferenceLabel)) {
       core.info(`  🔒 Skipping ${name} (protected by keep-preview label)`)
       outputs.skippedResources.push({
         name,
@@ -289,10 +287,10 @@ async function handleBulkDeletion(
       core.info(`  🗑️ Deleting: ${name} (age: ${ageDisplay})`)
       await deleteKustomization(customApi, name, inputs.dryRun)
 
-      if (ciPrefixLabel) {
+      if (ciReferenceLabel) {
         await deleteMatchingOCIRepository(
           customApi,
-          ciPrefixLabel,
+          ciReferenceLabel,
           inputs.dryRun
         )
       }
@@ -306,7 +304,7 @@ async function handleBulkDeletion(
       type: 'Kustomization',
       name,
       age: ageDisplay,
-      ciPrefix: ciPrefixLabel
+      ciPrefix: ciReferenceLabel
     })
     outputs.deletedCount++
   }
@@ -373,7 +371,7 @@ async function deleteOCIRepository(
 
 async function deleteMatchingOCIRepository(
   customApi: k8s.CustomObjectsApi,
-  ciPrefixLabel: string,
+  ciReferenceLabel: string,
   dryRun: boolean
 ): Promise<void> {
   if (dryRun) return
@@ -384,7 +382,7 @@ async function deleteMatchingOCIRepository(
       version: 'v1',
       namespace: 'infra-fluxcd',
       plural: 'ocirepositories',
-      labelSelector: `preview-deployment=true,ci-prefix=${ciPrefixLabel}`
+      labelSelector: `eidp.com/preview-deployment=true,eidp.com/ci-reference=${ciReferenceLabel}`
     })) as { items: OCIRepository[] }
 
     for (const oci of response.items) {
@@ -392,7 +390,7 @@ async function deleteMatchingOCIRepository(
     }
   } catch (error: any) {
     core.warning(
-      `Failed to find/delete matching OCIRepository for ci-prefix ${ciPrefixLabel}: ${error.message}`
+      `Failed to find/delete matching OCIRepository for ci-reference ${ciReferenceLabel}: ${error.message}`
     )
   }
 }

@@ -168,7 +168,7 @@ async function run(): Promise<void> {
 
     const customApi = kc.makeApiClient(k8s.CustomObjectsApi)
 
-    const ciPrefixLabel = ciPrefix.replace(/-+$/, '')
+    const ciReferenceLabel = sanitizeLabelValue(reference)
     const repositoryLabel = sanitizeLabelValue(
       `${github.context.repo.owner}_${github.context.repo.repo}`
     )
@@ -184,9 +184,9 @@ async function run(): Promise<void> {
         labels: {
           'app.kubernetes.io/managed-by': 'github-actions',
           'app.kubernetes.io/created-by': 'deploy-preview',
-          'preview-deployment': 'true',
-          'ci-prefix': ciPrefixLabel,
-          'github.com/repository': repositoryLabel
+          'eidp.com/preview-deployment': 'true',
+          'eidp.com/ci-reference': ciReferenceLabel,
+          'eidp.com/repository': repositoryLabel
         }
       },
       spec: {
@@ -246,9 +246,9 @@ async function run(): Promise<void> {
         labels: {
           'app.kubernetes.io/managed-by': 'github-actions',
           'app.kubernetes.io/created-by': 'deploy-preview',
-          'preview-deployment': 'true',
-          'ci-prefix': ciPrefixLabel,
-          'github.com/repository': repositoryLabel
+          'eidp.com/preview-deployment': 'true',
+          'eidp.com/ci-reference': ciReferenceLabel,
+          'eidp.com/repository': repositoryLabel
         }
       },
       spec: {
