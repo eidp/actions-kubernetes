@@ -1,4 +1,5 @@
 import * as core from '@actions/core'
+import * as github from '@actions/github'
 import * as k8s from '@kubernetes/client-node'
 import { Kustomization, OCIRepository } from './types'
 
@@ -8,6 +9,15 @@ function sleep(ms: number): Promise<void> {
 
 function sanitizeName(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9-]/g, '')
+}
+
+function sanitizeLabelValue(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9-_.]/g, '_')
+    .replace(/^[^a-z0-9]+/, '')
+    .substring(0, 63)
+    .replace(/[^a-z0-9]+$/, '')
 }
 
 function truncateName(name: string, maxLength: number = 63): string {
@@ -98,6 +108,9 @@ async function run(): Promise<void> {
     const customApi = kc.makeApiClient(k8s.CustomObjectsApi)
 
     const ciPrefixLabel = ciPrefix.replace(/-+$/, '')
+    const repositoryLabel = sanitizeLabelValue(
+      `${github.context.repo.owner}_${github.context.repo.repo}`
+    )
 
     core.info(`Creating OCIRepository: ${ociRepoName}`)
 
@@ -111,7 +124,8 @@ async function run(): Promise<void> {
           'app.kubernetes.io/managed-by': 'github-actions',
           'app.kubernetes.io/created-by': 'deploy-preview',
           'preview-deployment': 'true',
-          'ci-prefix': ciPrefixLabel
+          'ci-prefix': ciPrefixLabel,
+          'github.com/repository': repositoryLabel
         }
       },
       spec: {
@@ -175,7 +189,8 @@ async function run(): Promise<void> {
           'app.kubernetes.io/managed-by': 'github-actions',
           'app.kubernetes.io/created-by': 'deploy-preview',
           'preview-deployment': 'true',
-          'ci-prefix': ciPrefixLabel
+          'ci-prefix': ciPrefixLabel,
+          'github.com/repository': repositoryLabel
         }
       },
       spec: {

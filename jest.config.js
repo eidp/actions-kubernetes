@@ -4,7 +4,7 @@
 module.exports = {
   clearMocks: true,
   collectCoverage: true,
-  collectCoverageFrom: ['./create-context/src/**'],
+  collectCoverageFrom: ['./create-context/src/**', './teardown-preview/src/**'],
   coverageDirectory: './coverage',
   coveragePathIgnorePatterns: ['/node_modules/', '/dist/'],
   coverageReporters: ['json-summary', 'text', 'lcov'],

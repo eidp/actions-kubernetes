@@ -15,5 +15,9 @@
     "template",
     "requirements"
   ],
-  "include": ["create-context/src", "deploy-preview/src"]
+  "include": [
+    "create-context/src",
+    "deploy-preview/src",
+    "teardown-preview/src"
+  ]
 }
