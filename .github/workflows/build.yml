@@ -287,6 +287,8 @@ jobs:
         kubernetes-context: ${{ steps.create-context.outputs.context-name }}
         reference: ${{ github.event.number || github.ref_name }}
         dry-run: 'true'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Assert teardown preview dry-run outputs
       uses: nick-fields/assert-action@aa0067e01f0f6545c31755d6ca128c5a3a14f6bf # v2.0.0
@@ -300,6 +302,8 @@ jobs:
       with:
         kubernetes-context: ${{ steps.create-context.outputs.context-name }}
         dry-run: 'true'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Assert teardown preview bulk dry-run outputs
       uses: nick-fields/assert-action@aa0067e01f0f6545c31755d6ca128c5a3a14f6bf # v2.0.0
@@ -315,6 +319,8 @@ jobs:
         kubernetes-context: ${{ steps.create-context.outputs.context-name }}
         reference: ${{ github.event.number || github.ref_name }}
         wait-for-deletion: 'true'
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: 'Verify that preview deployment resources do not exist anymore'
       run: |
