@@ -47,6 +47,7 @@ To prevent multiple preview deployments for the same PR, it is recommended to ad
 |`ci-prefix-length`   |The number of characters from the reference to include in the CI prefix. Should be sufficient to ensure uniqueness while keeping resource names within Kubernetes limits. Can be max 24 characters.                                                |No      |`16`   |
 |`chart-version`      |Optional chart version override.                                                                                                                                                                                                                   |No      |``     |
 |`timeout`            |The time to wait for the deployment to be completed successfully.                                                                                                                                                                                  |No      |`5m`   |
+|`ingress-selector`   |Label selector to identify the ingress resource for preview URL discovery (e.g. app=my-app). Required if multiple ingresses exist in the namespace.                                                                                                |No      |``     |
 
 ## 📤 Outputs
 

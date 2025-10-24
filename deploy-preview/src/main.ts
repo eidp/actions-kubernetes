@@ -100,6 +100,7 @@ async function run(): Promise<void> {
     const ciPrefixLengthStr = core.getInput('ci-prefix-length') || '16'
     const chartVersion = core.getInput('chart-version')
     const timeout = core.getInput('timeout') || '5m'
+    const ingressSelector = core.getInput('ingress-selector')
 
     const ciPrefixLength = parseInt(ciPrefixLengthStr, 10)
 
@@ -288,28 +289,41 @@ async function run(): Promise<void> {
 
     try {
       const networkingApi = kc.makeApiClient(k8s.NetworkingV1Api)
-      const ingresses = await networkingApi.listNamespacedIngress({ namespace })
+      const ingresses = await networkingApi.listNamespacedIngress({
+        namespace,
+        labelSelector: ingressSelector
+      })
 
-      if (ingresses.items.length > 0) {
+      if (ingresses.items.length === 0) {
+        core.warning(`No ingress resources found in namespace ${namespace}`)
+        if (ingressSelector) {
+          core.info(`Label selector used: ${ingressSelector}`)
+        }
+        core.info('Preview deployment is ready but no URL is available')
+      } else if (ingresses.items.length > 1 && !ingressSelector) {
+        core.setFailed(
+          `Found ${ingresses.items.length} ingress resources in namespace ${namespace} but no ingress-selector was provided. ` +
+            `Please specify the ingress-selector input with a label selector to select the correct ingress.`
+        )
+      } else {
         core.info(
           `Found ${ingresses.items.length} ingress(es) in namespace ${namespace}`
         )
+        if (ingressSelector) {
+          core.info(`Label selector used: ${ingressSelector}`)
+        }
 
-        const firstIngress = ingresses.items[0]
-        const host = firstIngress.spec?.rules?.[0]?.host
+        const ingress = ingresses.items[0]
+        const host = ingress.spec?.rules?.[0]?.host
 
         if (host) {
-          const hasTls =
-            firstIngress.spec?.tls && firstIngress.spec.tls.length > 0
+          const hasTls = ingress.spec?.tls && ingress.spec.tls.length > 0
 
           previewUrl = hasTls ? `https://${host}` : `http://${host}`
           core.info(`✅ Preview URL discovered: ${previewUrl}`)
         } else {
           core.warning('Ingress found but no host configured')
         }
-      } else {
-        core.warning(`No ingress resources found in namespace ${namespace}`)
-        core.info('Preview deployment is ready but no URL is available')
       }
     } catch (error) {
       core.warning(`Failed to discover preview URL: ${error}`)
