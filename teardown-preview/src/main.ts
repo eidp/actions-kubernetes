@@ -435,7 +435,7 @@ async function waitForKustomizationDeletion(
       })
       await new Promise((resolve) => setTimeout(resolve, pollInterval))
     } catch (error: any) {
-      if (error.statusCode === 404) {
+      if (error.code === 404) {
         return
       }
       throw error
@@ -463,7 +463,7 @@ async function waitForOCIRepositoryDeletion(
       })
       await new Promise((resolve) => setTimeout(resolve, pollInterval))
     } catch (error: any) {
-      if (error.statusCode === 404) {
+      if (error.code === 404) {
         return
       }
       throw error
