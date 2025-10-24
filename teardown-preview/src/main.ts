@@ -205,6 +205,11 @@ async function handleTargetedDeletion(
           ociReposResponse.items,
           inputs.timeout
         )
+
+        core.info(
+          'Waiting an additional 30 seconds for FluxCD to process finalizers and prune managed resources...'
+        )
+        await new Promise((resolve) => setTimeout(resolve, 30000))
       }
     }
   }
@@ -322,11 +327,12 @@ async function deleteKustomization(
       version: 'v1',
       namespace: 'infra-fluxcd',
       plural: 'kustomizations',
-      name
+      name,
+      propagationPolicy: 'Background'
     })
     core.info(`  ✅ Deleted Kustomization: ${name}`)
   } catch (error: any) {
-    if (error.statusCode === 404) {
+    if (error.code === 404) {
       core.info(`  ℹ️ Kustomization ${name} already deleted`)
     } else {
       throw error
@@ -347,11 +353,17 @@ async function deleteOCIRepository(
       version: 'v1',
       namespace: 'infra-fluxcd',
       plural: 'ocirepositories',
-      name
+      name,
+      propagationPolicy: 'Background',
+      body: {
+        apiVersion: 'v1',
+        kind: 'DeleteOptions',
+        propagationPolicy: 'Background'
+      }
     })
     core.info(`  ✅ Deleted OCIRepository: ${name}`)
   } catch (error: any) {
-    if (error.statusCode === 404) {
+    if (error.code === 404) {
       core.info(`  ℹ️ OCIRepository ${name} already deleted`)
     } else {
       core.warning(`Failed to delete OCIRepository ${name}: ${error.message}`)
