@@ -28,6 +28,67 @@ function truncateName(name: string, maxLength: number = 63): string {
   return name
 }
 
+async function createOrUpdateCustomObject(
+  customApi: k8s.CustomObjectsApi,
+  params: {
+    group: string
+    version: string
+    namespace: string
+    plural: string
+    name: string
+    body: any
+    resourceType: string
+  }
+): Promise<void> {
+  try {
+    await customApi.createNamespacedCustomObject({
+      group: params.group,
+      version: params.version,
+      namespace: params.namespace,
+      plural: params.plural,
+      body: params.body
+    })
+    core.info(`✅ ${params.resourceType} created successfully`)
+  } catch (error: any) {
+    if (error.code === 409) {
+      core.info(`${params.resourceType} already exists, updating...`)
+      try {
+        const existing = (await customApi.getNamespacedCustomObject({
+          group: params.group,
+          version: params.version,
+          namespace: params.namespace,
+          plural: params.plural,
+          name: params.name
+        })) as any
+
+        const updatedBody = {
+          ...params.body,
+          metadata: {
+            ...params.body.metadata,
+            resourceVersion: existing.metadata.resourceVersion
+          }
+        }
+
+        await customApi.replaceNamespacedCustomObject({
+          group: params.group,
+          version: params.version,
+          namespace: params.namespace,
+          plural: params.plural,
+          name: params.name,
+          body: updatedBody
+        })
+        core.info(`✅ ${params.resourceType} updated successfully`)
+      } catch (updateError) {
+        throw new Error(
+          `Failed to update ${params.resourceType}: ${updateError}`
+        )
+      }
+    } else {
+      throw new Error(`Failed to create ${params.resourceType}: ${error}`)
+    }
+  }
+}
+
 async function run(): Promise<void> {
   try {
     const environment = core.getInput('environment', { required: true })
@@ -142,18 +203,15 @@ async function run(): Promise<void> {
       }
     }
 
-    try {
-      await customApi.createNamespacedCustomObject({
-        group: 'source.toolkit.fluxcd.io',
-        version: 'v1',
-        namespace: 'infra-fluxcd',
-        plural: 'ocirepositories',
-        body: ociRepository
-      })
-      core.info('✅ OCIRepository created successfully')
-    } catch (error) {
-      throw new Error(`Failed to create OCIRepository: ${error}`)
-    }
+    await createOrUpdateCustomObject(customApi, {
+      group: 'source.toolkit.fluxcd.io',
+      version: 'v1',
+      namespace: 'infra-fluxcd',
+      plural: 'ocirepositories',
+      name: ociRepoName,
+      body: ociRepository,
+      resourceType: 'OCIRepository'
+    })
 
     const gitBranch =
       process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || ''
@@ -210,18 +268,15 @@ async function run(): Promise<void> {
       }
     }
 
-    try {
-      await customApi.createNamespacedCustomObject({
-        group: 'kustomize.toolkit.fluxcd.io',
-        version: 'v1',
-        namespace: 'infra-fluxcd',
-        plural: 'kustomizations',
-        body: kustomization
-      })
-      core.info('✅ Kustomization created successfully')
-    } catch (error) {
-      throw new Error(`Failed to create Kustomization: ${error}`)
-    }
+    await createOrUpdateCustomObject(customApi, {
+      group: 'kustomize.toolkit.fluxcd.io',
+      version: 'v1',
+      namespace: 'infra-fluxcd',
+      plural: 'kustomizations',
+      name: kustomizationName,
+      body: kustomization,
+      resourceType: 'Kustomization'
+    })
 
     core.endGroup()
 
