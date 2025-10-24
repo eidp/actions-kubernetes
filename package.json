@@ -2,7 +2,6 @@
   "name": "actions-kubernetes",
   "version": "1.0.0",
   "description": "Kubernetes specific GitHub Actions",
-  "type": "module",
   "private": true,
   "exports": {
     ".": "./create-context/dist/index.js"
@@ -12,15 +11,15 @@
   },
   "scripts": {
     "bundle": "npm run format:write && npm run package",
-    "ci-test": "NODE_OPTIONS=--experimental-vm-modules NODE_NO_WARNINGS=1 npx jest",
+    "ci-test": "npx jest",
     "coverage": "npx make-coverage-badge --output-path ./badges/coverage.svg",
     "format:write": "npx prettier --write .",
     "format:check": "npx prettier --check .",
     "lint": "npx eslint .",
     "local-action": "npx @github/local-action ./create-context create-context/src/main.ts .env",
-    "package": "npx rollup --config rollup.config.ts --configPlugin @rollup/plugin-typescript",
+    "package": "ncc build create-context/src/main.ts -o create-context/dist --source-map --license licenses.txt && ncc build deploy-preview/src/main.ts -o deploy-preview/dist --source-map --license licenses.txt",
     "package:watch": "npm run package -- --watch",
-    "test": "NODE_OPTIONS=--experimental-vm-modules NODE_NO_WARNINGS=1 npx jest",
+    "test": "npx jest",
     "all": "npm run format:write && npm run lint && npm run test && npm run coverage && npm run package"
   },
   "repository": {
@@ -43,14 +42,11 @@
     "@eslint/compat": "^1.4.0",
     "@github/local-action": "^6.0.0",
     "@jest/globals": "^30.2.0",
-    "@rollup/plugin-commonjs": "^28.0.6",
-    "@rollup/plugin-json": "^6.1.0",
-    "@rollup/plugin-node-resolve": "^16.0.1",
-    "@rollup/plugin-typescript": "^12.1.4",
     "@types/jest": "^30.0.0",
     "@types/node": "^24.6.2",
     "@typescript-eslint/eslint-plugin": "^8.45.0",
     "@typescript-eslint/parser": "^8.32.1",
+    "@vercel/ncc": "^0.38.3",
     "eslint": "^9.36.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-import-resolver-typescript": "^4.4.4",
@@ -61,12 +57,8 @@
     "jest": "^30.2.0",
     "prettier": "^3.6.2",
     "prettier-eslint": "^16.4.2",
-    "rollup": "^4.52.4",
     "ts-jest": "^29.4.4",
     "ts-jest-resolver": "^2.0.1",
     "typescript": "^5.9.3"
-  },
-  "optionalDependencies": {
-    "@rollup/rollup-linux-x64-gnu": "*"
   }
 }

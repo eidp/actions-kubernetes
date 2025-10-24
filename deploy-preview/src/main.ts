@@ -1,6 +1,6 @@
 import * as core from '@actions/core'
 import * as k8s from '@kubernetes/client-node'
-import { Kustomization, OCIRepository } from './types.js'
+import { Kustomization, OCIRepository } from './types'
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -251,7 +251,7 @@ async function run(): Promise<void> {
     core.startGroup('Generating GitHub summary')
 
     await core.summary
-      .addHeading('✅ Preview deployment successful')
+      .addHeading('✅ Preview deployment successful', 2)
       .addHeading('Deployment details', 3)
       .addTable([
         [

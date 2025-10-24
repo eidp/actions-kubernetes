@@ -1,4 +1,4 @@
-import { parseJWTClaims } from '../src/jwt.js'
+import { parseJWTClaims } from '../src/jwt'
 
 describe('JWT parsing', () => {
   it('should parse valid JWT token', () => {

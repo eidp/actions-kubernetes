@@ -2,7 +2,7 @@ import * as core from '@actions/core'
 import * as k8s from '@kubernetes/client-node'
 import * as fs from 'fs'
 import * as path from 'path'
-import { parseJWTClaims } from './jwt.js'
+import { parseJWTClaims } from './jwt'
 
 async function run(): Promise<void> {
   try {
@@ -109,7 +109,7 @@ async function run(): Promise<void> {
     // Generate summary
     core.startGroup('Generating GitHub summary')
     await core.summary
-      .addHeading('Kubernetes context created')
+      .addHeading('Kubernetes context created', 2)
       .addTable([
         [{ data: 'Context Name', header: true }, { data: environment }],
         [{ data: 'API Server', header: true }, { data: apiServer }],
