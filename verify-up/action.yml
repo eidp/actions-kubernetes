@@ -43,10 +43,24 @@ inputs:
       such as `deploy/my-server` or `job/my-job`.
     required: false
     default: ''
+  initial-wait:
+    description: 'Time in seconds to wait before starting verification to allow resources to reconcile. Set to 0 to disable.'
+    required: false
+    default: '0'
 
 runs:
   using: 'composite'
   steps:
+    - name: wait for reconciliation
+      shell: bash
+      run: |
+        if [ "${{ inputs.initial-wait }}" -gt 0 ]; then
+          echo "Waiting ${{ inputs.initial-wait }} seconds for Kubernetes resources to reconcile..."
+          sleep ${{ inputs.initial-wait }}
+        else
+          echo "Skipping initial wait (initial-wait=0)"
+        fi
+
     - name: verify connectivity
       shell: bash
       run: |
