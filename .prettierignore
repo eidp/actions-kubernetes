@@ -1,4 +1,4 @@
-# Exclude YAML files to preserve original indentation style
+# Exclude YAML and markdown files to preserve original indentation style
 *.yml
 *.yaml
 *.md

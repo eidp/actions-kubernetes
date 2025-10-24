@@ -36,8 +36,8 @@
   "license": "Apache-2.0",
   "dependencies": {
     "@actions/core": "^1.11.1",
-    "@actions/github": "^6.0.0",
-    "@kubernetes/client-node": "^0.21.0"
+    "@actions/github": "^6.0.1",
+    "@kubernetes/client-node": "^1.4.0"
   },
   "devDependencies": {
     "@eslint/compat": "^1.4.0",
@@ -59,7 +59,6 @@
     "eslint-plugin-prettier": "^5.5.4",
     "globals": "^15.13.0",
     "jest": "^30.2.0",
-    "make-coverage-badge": "^1.2.0",
     "prettier": "^3.6.2",
     "prettier-eslint": "^16.4.2",
     "rollup": "^4.52.4",

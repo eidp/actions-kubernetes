@@ -11,6 +11,8 @@
     "__tests__",
     "create-context/src",
     "create-context/__tests__",
+    "deploy-preview/src",
+    "deploy-preview/__tests__",
     "eslint.config.mjs",
     "jest.config.js",
     "rollup.config.ts"

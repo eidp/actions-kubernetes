@@ -18,19 +18,19 @@ permissions:
 
 ## 🔧 Inputs
 
-|            Name            |                                    Description                                   |Required|   Default   |
-|----------------------------|----------------------------------------------------------------------------------|--------|-------------|
-|        `environment`       |The environment to create the context for (e.g. development, staging, production).|   No   |`development`|
-|        `api-server`        |                  The API server URL for the Kubernetes cluster.                  |   Yes  |      ``     |
-|`certificate-authority-data`|     The base64 encoded certificate authority data for the Kubernetes cluster.    |   Yes  |      ``     |
-|      `kubectl-version`     |                          The version of kubectl to use.                          |   No   |   `latest`  |
-|     `print-jwt-claims`     |         Print the JWT claims from the OIDC token for debugging purposes.         |   No   |   `false`   |
+|Name                         |Description                                                                        |Required|Default       |
+|-----------------------------|-----------------------------------------------------------------------------------|--------|--------------|
+|`environment`                |The environment to create the context for (e.g. development, staging, production). |No      |`development` |
+|`api-server`                 |The API server URL for the Kubernetes cluster.                                     |Yes     |``            |
+|`certificate-authority-data` |The base64 encoded certificate authority data for the Kubernetes cluster.          |Yes     |``            |
+|`kubectl-version`            |The version of kubectl to use.                                                     |No      |`latest`      |
+|`print-jwt-claims`           |Print the JWT claims from the OIDC token for debugging purposes.                   |No      |`false`       |
 
 ## 📤 Outputs
 
-|     Name     |                Description                |
-|--------------|-------------------------------------------|
-|`context-name`|The name of the created Kubernetes context.|
+|Name           |Description                                 |
+|---------------|--------------------------------------------|
+|`context-name` |The name of the created Kubernetes context. |
 
 ## 🚀 Usage
 

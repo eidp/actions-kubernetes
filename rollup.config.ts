@@ -13,7 +13,7 @@ import { existsSync } from 'fs'
 // 3. Rollup will automatically build it to <action>/dist/index.js
 //
 // Note: Composite actions (using shell scripts) don't need to be listed here
-const actions = ['create-context']
+const actions = ['create-context', 'deploy-preview']
 
 // Create a build configuration for each action
 const configs = actions

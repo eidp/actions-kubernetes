@@ -243,6 +243,13 @@ jobs:
 
         echo "✅ All preview resources verified"
 
+    - name: 'Verify preview deployment successful'
+      uses: ./verify-up
+      with:
+        kubernetes-context: ${{ steps.create-context.outputs.context-name }}
+        namespace: ${{ steps.deploy-preview-happy.outputs.namespace }}
+        chart-version: '0.4.0'
+
     - name: Cleanup preview deployment
       if: always()
       continue-on-error: true

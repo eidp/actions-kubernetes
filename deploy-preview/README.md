@@ -18,7 +18,7 @@ The following triggers are recommended for pull request workflows:
 on:
   pull_request:
     types: [opened, synchronize, reopened]
-```  
+```
 
 To show the preview deployment URL in the pull request, use the `preview-url` output of this action and add it to the `environment` key of the workflow job.
 
@@ -38,25 +38,25 @@ To prevent multiple preview deployments for the same PR, it is recommended to ad
 
 ## 🔧 Inputs
 
-|        Name        |                                                                                                                    Description                                                                                                                   |Required|Default|
-|--------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------|-------|
-|    `environment`   |                                                                                 The github environment used to deploy to (e.g. `pr-${{ github.event.pr }}`).                                                                                |   Yes  |   ``  |
-|`kubernetes-context`|                                                                                             The name of the Kubernetes context to use for deployment.                                                                                            |   Yes  |   ``  |
-|    `tenant-name`   |                                                                                   The tenant name used to identify the tenant definition in the OCI repository.                                                                                  |   Yes  |   ``  |
-|     `reference`    |A reference used to uniquely identify this preview environment. Among other things, it is used to generate a resource name prefix. Typically this would be the Pull Request number (`github.pr.number`) or branch reference (`github.branch_ref`).|   Yes  |       |
-| `ci-prefix-length` |                        The number of characters from the reference to include in the CI prefix. Should be sufficient to ensure uniqueness while keeping resource names within Kubernetes limits. Can be max 24 characters.                       |   No   |  `16` |
-|   `chart-version`  |                                                                                                         Optional chart version override.                                                                                                         |   No   |   ``  |
-|      `timeout`     |                                                                                         The time to wait for the deployment to be completed successfully.                                                                                        |   No   |  `5m` |
+|Name                 |Description                                                                                                                                                                                                                                        |Required|Default|
+|---------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------|-------|
+|`environment`        |The github environment used to deploy to (e.g. `pr-${{ github.event.pr }}`).                                                                                                                                                                  |Yes     |``     |
+|`kubernetes-context` |The name of the Kubernetes context to use for deployment.                                                                                                                                                                                          |Yes     |``     |
+|`tenant-name`        |The tenant name used to identify the tenant definition in the OCI repository.                                                                                                                                                                      |Yes     |``     |
+|`reference`          |A reference used to uniquely identify this preview environment. Among other things, it is used to generate a resource name prefix. Typically this would be the Pull Request number (`github.pr.number`) or branch reference (`github.branch_ref`). |Yes     |       |
+|`ci-prefix-length`   |The number of characters from the reference to include in the CI prefix. Should be sufficient to ensure uniqueness while keeping resource names within Kubernetes limits. Can be max 24 characters.                                                |No      |`16`   |
+|`chart-version`      |Optional chart version override.                                                                                                                                                                                                                   |No      |``     |
+|`timeout`            |The time to wait for the deployment to be completed successfully.                                                                                                                                                                                  |No      |`5m`   |
 
 ## 📤 Outputs
 
-|         Name        |                        Description                        |
-|---------------------|-----------------------------------------------------------|
-|`oci-repository-name`|      The name of the created OCIRepository resource.      |
-| `kustomization-name`|      The name of the created Kustomization resource.      |
-|     `namespace`     |          The target namespace for the deployment.         |
-|     `ci-prefix`     |     The generated CI prefix used for resource naming.     |
-|    `preview-url`    |The discovered preview deployment URL (empty if not found).|
+|Name                  |Description                                                 |
+|----------------------|------------------------------------------------------------|
+|`oci-repository-name` |The name of the created OCIRepository resource.             |
+|`kustomization-name`  |The name of the created Kustomization resource.             |
+|`namespace`           |The target namespace for the deployment.                    |
+|`ci-prefix`           |The generated CI prefix used for resource naming.           |
+|`preview-url`         |The discovered preview deployment URL (empty if not found). |
 
 ## 🚀 Usage
 
@@ -87,7 +87,7 @@ jobs:
       id-token: write
     environment:
       name: pr-${{ github.event.number }}
-      url: ${{ steps.deploy-preview-happy.outputs.preview-url }}
+      url: ${{ steps.deploy-preview.outputs.preview-url }}
     concurrency:
       group: pr-${{ github.event.number }}
       cancel-in-progress: false
@@ -97,7 +97,7 @@ jobs:
         uses: actions/checkout@v5
 
       # This step generates a semantic version based on the commit history.
-      # The same version should be used to tag the Helm chart, in case you are publishing it as part of your CI/CD pipeline.
+      # The same version should be used to tag the Helm chart, in case your repository contains one.
       - name: Generate version
         id: generate
         uses: eidp/actions-semver/generate-version@v0
@@ -112,8 +112,8 @@ jobs:
           certificate-authority-data:
             ${{ secrets.K8S_CERTIFICATE_AUTHORITY_DATA_DEVELOPMENT }}
 
-      - name: 'Deploy Preview'
-        id: deploy-preview-happy
+      - name: Deploy preview
+        id: deploy-preview
         uses: eidp/actions-kubernetes/deploy-preview@v0
         with:
           # This references the github environment for this PR, not the target cluster environment.
@@ -122,5 +122,13 @@ jobs:
           chart-version: '${{ steps.generate.outputs.version }}'
           tenant-name: actions-kubernetes
           reference: ${{ github.event.number || github.ref_name }}
+          timeout: 10m
+
+      - name: Verify preview deployment
+        uses: eidp/actions-kubernetes/verify-up@v0
+        with:
+          kubernetes-context: ${{ steps.create-context.outputs.context-name }}
+          namespace: ${{ steps.deploy-preview.outputs.namespace }}
+          chart-version: '${{ steps.generate.outputs.version }}'
           timeout: 10m
 ```
