@@ -18,8 +18,9 @@ The following GitHub Actions are available in this repository:
 
 ### Pre-commit hooks
 
-To ensure code quality and consistency, this repository uses [pre-commit](https://pre-commit.com/) hooks. Make sure to
-install the pre-commit hooks by running:
+To ensure code quality and consistency, this repository uses
+[pre-commit](https://pre-commit.com/) hooks. Make sure to install the pre-commit
+hooks by running:
 
 ```bash
 pre-commit install

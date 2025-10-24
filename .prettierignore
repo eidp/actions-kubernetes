@@ -1,0 +1,9 @@
+# Exclude YAML files to preserve original indentation style
+*.yml
+*.yaml
+*.md
+
+# Exclude generated files
+dist/
+coverage/
+node_modules/

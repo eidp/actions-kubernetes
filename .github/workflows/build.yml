@@ -9,6 +9,33 @@ on:
     - main
 
 jobs:
+  test-typescript:
+    runs-on: kubernetes-runner
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+      with:
+        node-version-file: .node-version
+        cache: npm
+
+    - name: Install Dependencies
+      run: npm ci
+
+    - name: Check Format
+      id: npm-format-check
+      run: npm run format:check
+
+    - name: Lint
+      id: npm-lint
+      run: npm run lint
+
+    - name: Test
+      id: npm-ci-test
+      run: npm run ci-test
+
   test-create-context:
     runs-on: kubernetes-runner
     permissions:
@@ -18,6 +45,9 @@ jobs:
     steps:
     - name: Checkout code
       uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+    - name: Install kubectl
+      uses: azure/setup-kubectl@776406bce94f63e41d621b960d78ee25c8b76ede # v4.0.1
 
     - name: Create Kubernetes context
       id: create-context
@@ -90,7 +120,10 @@ jobs:
         certificate-authority-data: ${{ secrets.K8S_CERTIFICATE_AUTHORITY_DATA_DEVELOPMENT }}
         print-jwt-claims: 'true'
 
-    - name: "verify-up: invalid namespace"
+    - name: Install kubectl
+      uses: azure/setup-kubectl@776406bce94f63e41d621b960d78ee25c8b76ede # v4.0.1
+
+    - name: 'verify-up: invalid namespace'
       id: verify-up-invalid-namespace
       uses: ./verify-up
       continue-on-error: true
@@ -105,7 +138,7 @@ jobs:
         expected: failure
         actual: ${{ steps.verify-up-invalid-namespace.outcome }}
 
-    - name: "verify-up: missing resource"
+    - name: 'verify-up: missing resource'
       id: verify-up-missing-resource
       uses: ./verify-up
       continue-on-error: true
@@ -121,7 +154,7 @@ jobs:
         expected: failure
         actual: ${{ steps.verify-up-missing-resource.outcome }}
 
-    - name: "verify-up: with flux resource (happy-flow)"
+    - name: 'verify-up: with flux resource (happy-flow)'
       id: verify-up-with-resource
       uses: ./verify-up
       with:
@@ -135,7 +168,7 @@ jobs:
         expected: success
         actual: ${{ steps.verify-up-with-resource.outcome }}
 
-    - name: "verify-up: no flux resource (happy-flow)"
+    - name: 'verify-up: no flux resource (happy-flow)'
       id: verify-up-no-flux-resource
       uses: ./verify-up
       with:
@@ -166,10 +199,14 @@ jobs:
       with:
         environment: development
         api-server: ${{ vars.K8S_API_SERVER_DEVELOPMENT }}
-        certificate-authority-data: ${{ secrets.K8S_CERTIFICATE_AUTHORITY_DATA_DEVELOPMENT }}
+        certificate-authority-data:
+          ${{ secrets.K8S_CERTIFICATE_AUTHORITY_DATA_DEVELOPMENT }}
         print-jwt-claims: 'true'
 
-    - name: "deploy-preview: happy flow"
+    - name: Install kubectl
+      uses: azure/setup-kubectl@776406bce94f63e41d621b960d78ee25c8b76ede # v4.0.1
+
+    - name: 'deploy-preview: happy flow'
       id: deploy-preview-happy
       uses: ./deploy-preview
       with:
@@ -191,7 +228,10 @@ jobs:
       uses: nick-fields/assert-action@aa0067e01f0f6545c31755d6ca128c5a3a14f6bf # v2.0.0
       with:
         expected: true
-        actual: ${{ steps.deploy-preview-happy.outputs.oci-repository-name != '' && steps.deploy-preview-happy.outputs.kustomization-name != '' && steps.deploy-preview-happy.outputs.ci-prefix != '' }}
+        actual:
+          ${{ steps.deploy-preview-happy.outputs.oci-repository-name != '' &&
+          steps.deploy-preview-happy.outputs.kustomization-name != '' &&
+          steps.deploy-preview-happy.outputs.ci-prefix != '' }}
 
     - name: Verify preview resources exist
       run: |

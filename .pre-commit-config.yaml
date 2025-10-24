@@ -1,10 +1,11 @@
 repos:
-- repo: ssh://git@github.com/eidp/actions-common.git
-  rev: v1.2.1
-  hooks:
-  - id: generate-action-docs
+  - repo: https://github.com/eidp/actions-common
+    rev: v1.2.1
+    hooks:
+      - id: generate-action-docs
 
-- repo: https://github.com/codespell-project/codespell
-  rev: v2.4.1
-  hooks:
-  - id: codespell
+  - repo: https://github.com/codespell-project/codespell
+    rev: v2.4.1
+    hooks:
+      - id: codespell
+        exclude: 'dist/.*'
