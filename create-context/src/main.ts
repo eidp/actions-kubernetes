@@ -7,7 +7,7 @@ import { parseJWTClaims } from './jwt'
 async function run(): Promise<void> {
   try {
     // Get inputs
-    const environment = core.getInput('environment') || 'development'
+    const cluster = core.getInput('cluster') || 'development'
     const apiServer = core.getInput('api-server', { required: true })
     const certificateAuthorityData = core.getInput(
       'certificate-authority-data',
@@ -22,9 +22,9 @@ async function run(): Promise<void> {
       throw new Error('api-server must be an https:// URL')
     }
 
-    if (!/^[a-zA-Z0-9-]+$/.test(environment)) {
+    if (!/^[a-zA-Z0-9-]+$/.test(cluster)) {
       throw new Error(
-        'environment must contain only alphanumeric characters and hyphens'
+        'cluster must contain only alphanumeric characters and hyphens'
       )
     }
 
@@ -54,15 +54,13 @@ async function run(): Promise<void> {
     core.endGroup()
 
     // Create Kubernetes configuration
-    core.startGroup(
-      `Creating kubernetes context for environment '${environment}'`
-    )
+    core.startGroup(`Creating kubernetes context for cluster '${cluster}'`)
 
     const kc = new k8s.KubeConfig()
 
     // Create cluster configuration
-    const cluster: k8s.Cluster = {
-      name: environment,
+    const clusterConfig: k8s.Cluster = {
+      name: cluster,
       server: apiServer,
       caData: certificateAuthorityData,
       skipTLSVerify: false
@@ -76,16 +74,16 @@ async function run(): Promise<void> {
 
     // Create context configuration
     const context: k8s.Context = {
-      name: environment,
-      cluster: environment,
+      name: cluster,
+      cluster: cluster,
       user: 'github-actions'
     }
 
     // Add to kubeconfig
     core.info('Building kubeconfig...')
-    kc.loadFromClusterAndUser(cluster, user)
+    kc.loadFromClusterAndUser(clusterConfig, user)
     kc.addContext(context)
-    kc.setCurrentContext(environment)
+    kc.setCurrentContext(cluster)
 
     // Export kubeconfig to default location
     const kubeConfigPath =
@@ -104,16 +102,16 @@ async function run(): Promise<void> {
     core.endGroup()
 
     // Set output
-    core.setOutput('context-name', environment)
+    core.setOutput('context-name', cluster)
 
     // Generate summary
     core.startGroup('Generating GitHub summary')
     await core.summary
       .addHeading('Kubernetes context created', 2)
       .addTable([
-        [{ data: 'Context Name', header: true }, { data: environment }],
+        [{ data: 'Context Name', header: true }, { data: cluster }],
         [{ data: 'API Server', header: true }, { data: apiServer }],
-        [{ data: 'Cluster Name', header: true }, { data: environment }]
+        [{ data: 'Cluster Name', header: true }, { data: cluster }]
       ])
       .write()
     core.endGroup()

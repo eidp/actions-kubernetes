@@ -18,9 +18,9 @@ description: |
 author: EIDP
 
 inputs:
-  environment:
+  cluster:
     description:
-      'The environment to create the context for (e.g. development, staging,
+      'The cluster to create the context for (e.g. development, staging,
       production).'
     required: false
     default: 'development'

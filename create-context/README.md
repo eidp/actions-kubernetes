@@ -18,13 +18,13 @@ permissions:
 
 ## 🔧 Inputs
 
-|Name                         |Description                                                                        |Required|Default       |
-|-----------------------------|-----------------------------------------------------------------------------------|--------|--------------|
-|`environment`                |The environment to create the context for (e.g. development, staging, production). |No      |`development` |
-|`api-server`                 |The API server URL for the Kubernetes cluster.                                     |Yes     |``            |
-|`certificate-authority-data` |The base64 encoded certificate authority data for the Kubernetes cluster.          |Yes     |``            |
-|`kubectl-version`            |The version of kubectl to use.                                                     |No      |`latest`      |
-|`print-jwt-claims`           |Print the JWT claims from the OIDC token for debugging purposes.                   |No      |`false`       |
+|Name                         |Description                                                                    |Required|Default       |
+|-----------------------------|-------------------------------------------------------------------------------|--------|--------------|
+|`cluster`                    |The cluster to create the context for (e.g. development, staging, production). |No      |`development` |
+|`api-server`                 |The API server URL for the Kubernetes cluster.                                 |Yes     |``            |
+|`certificate-authority-data` |The base64 encoded certificate authority data for the Kubernetes cluster.      |Yes     |``            |
+|`kubectl-version`            |The version of kubectl to use.                                                 |No      |`latest`      |
+|`print-jwt-claims`           |Print the JWT claims from the OIDC token for debugging purposes.               |No      |`false`       |
 
 ## 📤 Outputs
 
@@ -68,7 +68,7 @@ jobs:
         id: create-context
         uses: eidp/actions-kubernetes/create-context@v0
         with:
-          environment: production
+          cluster: production
           api-server: ${{ vars.K8S_API_SERVER_PRODUCTION }}
           certificate-authority-data:
             ${{ secrets.K8S_CERTIFICATE_AUTHORITY_DATA_PRODUCTION }}
@@ -85,7 +85,7 @@ steps:
   - name: Create Kubernetes context (with debug info)
     uses: eidp/actions-kubernetes/create-context@v0
     with:
-      environment: development
+      cluster: development
       api-server: ${{ vars.K8S_API_SERVER_DEVELOPMENT }}
       certificate-authority-data:
         ${{ secrets.K8S_CERTIFICATE_AUTHORITY_DATA_DEVELOPMENT }}

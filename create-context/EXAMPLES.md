@@ -24,7 +24,7 @@ jobs:
         id: create-context
         uses: eidp/actions-kubernetes/create-context@v0
         with:
-          environment: production
+          cluster: production
           api-server: ${{ vars.K8S_API_SERVER_PRODUCTION }}
           certificate-authority-data:
             ${{ secrets.K8S_CERTIFICATE_AUTHORITY_DATA_PRODUCTION }}
@@ -41,7 +41,7 @@ steps:
   - name: Create Kubernetes context (with debug info)
     uses: eidp/actions-kubernetes/create-context@v0
     with:
-      environment: development
+      cluster: development
       api-server: ${{ vars.K8S_API_SERVER_DEVELOPMENT }}
       certificate-authority-data:
         ${{ secrets.K8S_CERTIFICATE_AUTHORITY_DATA_DEVELOPMENT }}
