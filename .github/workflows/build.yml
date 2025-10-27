@@ -217,16 +217,16 @@ jobs:
     - name: Install kubectl
       uses: azure/setup-kubectl@776406bce94f63e41d621b960d78ee25c8b76ede # v4.0.1
 
-    - name: 'deploy-preview: happy flow'
+    - name: 'deploy-preview'
       id: deploy-preview
       uses: ./deploy-preview
       with:
-        environment: 'pr-${{ github.event.number || github.ref_name }}'
+        environment: 'pr-${{ github.event.number || github.event.issue.number || github.ref_name }}'
         kubernetes-context: ${{ steps.create-context.outputs.context-name }}
         # We are deliberately using an older chart version here to test the action's ability to deploy a custom chart version.
         chart-version: '0.4.0'
         tenant-name: actions-kubernetes
-        reference: ${{ github.event.number || github.ref_name }}
+        reference: ${{ github.event.number || github.event.issue.number || github.ref_name }}
         github-token: ${{ github.token }}
         timeout: 5m
 
@@ -295,7 +295,7 @@ jobs:
       uses: ./teardown-preview
       with:
         kubernetes-context: ${{ steps.create-context.outputs.context-name }}
-        reference: ${{ github.event.number || github.ref_name }}
+        reference: ${{ github.event.number || github.event.issue.number || github.ref_name }}
         github-token: ${{ github.token }}
         dry-run: 'true'
 
@@ -325,7 +325,7 @@ jobs:
       uses: ./teardown-preview
       with:
         kubernetes-context: ${{ steps.create-context.outputs.context-name }}
-        reference: ${{ github.event.number || github.ref_name }}
+        reference: ${{ github.event.number || github.event.issue.number || github.ref_name }}
         wait-for-deletion: 'true'
         github-token: ${{ github.token }}
 

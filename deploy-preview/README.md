@@ -94,8 +94,18 @@ jobs:
       url: ${{ steps.deploy-preview.outputs.preview-url }}
 
     steps:
+      # When triggered by slash commands (issue_comment), we need to checkout the PR branch
+      # because issue_comment events run from the default branch (security feature)
+      - name: Get PR branch
+        if: github.event_name == 'issue_comment'
+        uses: xt0rted/pull-request-comment-branch@v3
+        id: comment-branch
+
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          # Use PR branch when triggered by slash command, otherwise use the default ref
+          ref: ${{ github.event_name == 'issue_comment' && steps.comment-branch.outputs.head_ref || '' }}
 
       # This step generates a semantic version based on the commit history.
       # The same version should be used to tag the Helm chart, in case your repository contains one.
@@ -157,4 +167,11 @@ This action has slash command support built in. When called from an `issue_comme
 **Requirements:**
 - Your workflow must include both `pull_request` and `issue_comment` triggers
 - Your workflow must have the required permissions: `contents:read`, `pull-requests:write`, `issues:write`
+- Your workflow must checkout the PR branch when triggered by slash commands (see example above)
 - The commenter must have write or admin access to the repository
+
+### Why checkout the PR branch?
+
+When workflows are triggered by `issue_comment` events, GitHub runs them from the **default branch** (usually `main`) for security reasons. This means without the checkout step, your workflow would deploy code from `main` instead of the PR's code.
+
+The `xt0rted/pull-request-comment-branch` action solves this by fetching the PR's branch reference from the GitHub API, allowing you to checkout and deploy the actual PR code. This is the standard pattern used across the GitHub Actions ecosystem for slash commands.
