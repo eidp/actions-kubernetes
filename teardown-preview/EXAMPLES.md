@@ -1,8 +1,8 @@
 ## 📚 Examples
 
-### Targeted Cleanup on PR Close
+### Targeted cleanup on PR close
 
-Clean up a specific preview when a pull request is closed:
+This example is a standalone teardown workflow. For a complete workflow that handles both deploy and teardown with slash commands, see the [deploy-preview examples](../deploy-preview/EXAMPLES.md).
 
 ```yaml
 name: 'Cleanup Preview on PR Close'
@@ -10,14 +10,22 @@ name: 'Cleanup Preview on PR Close'
 on:
   pull_request:
     types: [closed]
+  issue_comment:
+    types: [created]
+
+concurrency:
+  group: pr-${{ github.event.number || github.event.issue.number }}
+  cancel-in-progress: false
 
 jobs:
   cleanup:
+    if: (github.event_name == 'pull_request') || (github.event_name == 'issue_comment' && github.event.issue.pull_request)
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
-      pull-requests: read
+      pull-requests: write
+      issues: write
 
     steps:
       - name: Create Kubernetes context
@@ -33,14 +41,12 @@ jobs:
         uses: eidp/actions-kubernetes/teardown-preview@v0
         with:
           kubernetes-context: ${{ steps.create-context.outputs.context-name }}
-          reference: ${{ github.event.number }}
+          reference: ${{ github.event.number || github.event.issue.number }}
           wait-for-deletion: true
           timeout: 10m
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-### Bulk Cleanup with Age Filter
+### Bulk cleanup with age filter
 
 Scheduled job to clean up old preview deployments:
 
@@ -76,11 +82,9 @@ jobs:
           kubernetes-context: ${{ steps.create-context.outputs.context-name }}
           max-age: 7d
           timeout: 15m
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-### Dry Run Mode
+### Dry run mode
 
 Test what would be deleted without actually deleting:
 
@@ -113,11 +117,9 @@ jobs:
         with:
           kubernetes-context: ${{ steps.create-context.outputs.context-name }}
           dry-run: true
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-### Cleanup All Previews (No Age Filter)
+### Cleanup all previews (no age filter)
 
 Clean up all preview deployments, respecting protection labels:
 
@@ -149,11 +151,9 @@ jobs:
         uses: eidp/actions-kubernetes/teardown-preview@v0
         with:
           kubernetes-context: ${{ steps.create-context.outputs.context-name }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 ```
 
-## Protection with Labels
+## Protection with labels
 
 PRs with the `keep-preview` label will be protected from deletion. This is always checked when GITHUB_TOKEN is available:
 
@@ -164,10 +164,25 @@ PRs with the `keep-preview` label will be protected from deletion. This is alway
 
 The action will skip any preview deployment associated with a PR that has this label, regardless of age or other filters.
 
-## Important Notes
+## Important notes
 
-- **GITHUB_TOKEN**: Always provide `GITHUB_TOKEN` in the environment for protection label checking to work
-- **Permissions**: The workflow needs `pull-requests: read` permission to check PR labels
+- **Permissions**: Workflows need `contents:read`, `pull-requests:write`, and `issues:write` permissions for PR comments and label checking
 - **Context**: Must use the same Kubernetes context that was used to deploy the preview
-- **CI Prefix Length**: Must match the value used in deploy-preview (default: 16)
-- **Wait for Deletion**: Enable this when you need to ensure resources are fully removed before workflow completes
+- **CI prefix length**: Must match the value used in deploy-preview (default: 16)
+- **Wait for deletion**: Enable this when you need to ensure resources are fully removed before workflow completes
+
+## Slash command integration
+
+This action has slash command support built in. When called from an `issue_comment` event, it automatically:
+
+1. Detects the `/teardown` command in PR comments
+2. Checks that the commenter has write access to the repository
+3. Adds emoji reactions (👀 for processing, ✅ for success, ❌ for failure)
+4. Executes the teardown
+
+**Requirements:**
+- Your workflow must include both `pull_request` and `issue_comment` triggers
+- Your workflow must have the required permissions: `contents:read`, `pull-requests:write`, `issues:write`
+- The commenter must have write or admin access to the repository
+
+For a complete unified workflow example that handles both deploy and teardown with slash commands, see the [deploy-preview examples](../deploy-preview/EXAMPLES.md).

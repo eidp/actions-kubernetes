@@ -11,14 +11,6 @@ description: |
   This action is intended to be used in pull request workflows to provide preview environments for testing changes before merging.
   After the pull request is closed/merged, the preview deployment can be cleaned up using the [Teardown Preview](../teardown-preview) action.
 
-  The following triggers are recommended for pull request workflows:
-
-  ```yaml
-  on:
-    pull_request:
-      types: [opened, synchronize, reopened]
-  ```
-
   To show the preview deployment URL in the pull request, use the `preview-url` output of this action and add it to the `environment` key of the workflow job.
 
   ```yaml
@@ -73,7 +65,7 @@ inputs:
     required: false
     default: ''
   github-token:
-    description: 'GitHub token for posting PR comments. Requires pull-requests:write permission.'
+    description: 'GitHub token for authentication. Uses GITHUB_TOKEN if not provided. Required permissions: contents:read, pull-requests:write, issues:write.'
     required: false
     default: ''
 

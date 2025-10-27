@@ -2,16 +2,10 @@ import * as core from '@actions/core'
 import * as github from '@actions/github'
 
 export function getPRNumber(): number | null {
-  // Try pull_request event first
+  // Works for both pull_request and issue_comment events
   if (github.context.issue?.number) {
-    core.debug('PR number from pull_request event')
+    core.debug('PR number from pull_request or issue_comment event')
     return github.context.issue.number
-  }
-
-  // Try repository_dispatch event
-  if (github.context.payload?.client_payload?.pull_request?.number) {
-    core.debug('PR number from repository_dispatch event')
-    return github.context.payload.client_payload.pull_request.number
   }
 
   return null

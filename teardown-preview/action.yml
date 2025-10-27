@@ -55,7 +55,7 @@ inputs:
     required: false
     default: ''
   github-token:
-    description: 'GitHub token for posting PR comments. Requires pull-requests:write permission.'
+    description: 'GitHub token for authentication. Uses GITHUB_TOKEN if not provided. Required permissions: contents:read, pull-requests:write, issues:write.'
     required: false
     default: ''
 

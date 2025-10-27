@@ -20,10 +20,57 @@ import {
   waitForKustomizationDeletion
 } from './k8s-operations'
 import { generateSummary } from './summary'
+import {
+  detectSlashCommand,
+  checkPermissions,
+  rejectUnauthorised,
+  addReaction
+} from '../../shared/src/slash-commands'
 
 async function run(): Promise<void> {
+  const githubToken =
+    core.getInput('github-token') || process.env.GITHUB_TOKEN || ''
+  let slashCommandId: number | null = null
+
   try {
-    const githubToken = core.getInput('github-token')
+    // Detect slash command
+    const slashContext = await detectSlashCommand('teardown')
+
+    if (!slashContext.shouldExecute) {
+      core.info('Skipping execution (no matching command or not applicable)')
+      return
+    }
+
+    // Handle slash command permissions and reactions
+    if (slashContext.isSlashCommand) {
+      core.info('Processing /teardown slash command')
+      slashCommandId = slashContext.commentId
+
+      // Add "eyes" reaction immediately
+      if (slashContext.commentId) {
+        await addReaction(githubToken, slashContext.commentId, 'eyes')
+      }
+
+      // Check permissions
+      if (slashContext.commenter) {
+        const hasPermission = await checkPermissions(
+          githubToken,
+          slashContext.commenter
+        )
+
+        if (!hasPermission) {
+          await rejectUnauthorised(
+            githubToken,
+            slashContext.prNumber!,
+            slashContext.commentId!,
+            slashContext.commenter
+          )
+          return
+        }
+      }
+
+      core.info(`Executing teardown for PR #${slashContext.prNumber}`)
+    }
 
     const inputs: ActionInputs = {
       kubernetesContext: core.getInput('kubernetes-context', {
@@ -64,7 +111,17 @@ async function run(): Promise<void> {
     )
 
     await generateSummary(inputs, outputs)
+
+    // Add success reaction for slash commands
+    if (slashCommandId) {
+      await addReaction(githubToken, slashCommandId, '+1')
+    }
   } catch (error) {
+    // Add failure reaction for slash commands
+    if (slashCommandId) {
+      await addReaction(githubToken, slashCommandId, '-1')
+    }
+
     core.setFailed(`Action failed: ${error}`)
   }
 }

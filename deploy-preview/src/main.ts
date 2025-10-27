@@ -8,6 +8,12 @@ import {
   discoverPreviewURL
 } from './k8s-operations'
 import { generateDeploymentSummary } from './summary'
+import {
+  detectSlashCommand,
+  checkPermissions,
+  rejectUnauthorised,
+  addReaction
+} from '../../shared/src/slash-commands'
 
 async function run(): Promise<void> {
   let tenantName = ''
@@ -15,9 +21,50 @@ async function run(): Promise<void> {
   let ciPrefix = ''
   let gitBranch = ''
   let previewUrl = ''
-  const githubToken = core.getInput('github-token')
+  const githubToken =
+    core.getInput('github-token') || process.env.GITHUB_TOKEN || ''
+  let slashCommandId: number | null = null
 
   try {
+    // Detect slash command
+    const slashContext = await detectSlashCommand('deploy')
+
+    if (!slashContext.shouldExecute) {
+      core.info('Skipping execution (no matching command or not applicable)')
+      return
+    }
+
+    // Handle slash command permissions and reactions
+    if (slashContext.isSlashCommand) {
+      core.info('Processing /deploy slash command')
+      slashCommandId = slashContext.commentId
+
+      // Add "eyes" reaction immediately
+      if (slashContext.commentId) {
+        await addReaction(githubToken, slashContext.commentId, 'eyes')
+      }
+
+      // Check permissions
+      if (slashContext.commenter) {
+        const hasPermission = await checkPermissions(
+          githubToken,
+          slashContext.commenter
+        )
+
+        if (!hasPermission) {
+          await rejectUnauthorised(
+            githubToken,
+            slashContext.prNumber!,
+            slashContext.commentId!,
+            slashContext.commenter
+          )
+          return
+        }
+      }
+
+      core.info(`Executing deploy for PR #${slashContext.prNumber}`)
+    }
+
     const environment = core.getInput('environment', { required: true })
     const kubernetesContext = core.getInput('kubernetes-context', {
       required: true
@@ -111,6 +158,11 @@ async function run(): Promise<void> {
       previewUrl,
       gitBranch
     })
+
+    // Add success reaction for slash commands
+    if (slashCommandId) {
+      await addReaction(githubToken, slashCommandId, '+1')
+    }
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : 'An unexpected error occurred'
@@ -124,6 +176,11 @@ async function run(): Promise<void> {
       gitBranch,
       errorMessage
     })
+
+    // Add failure reaction for slash commands
+    if (slashCommandId) {
+      await addReaction(githubToken, slashCommandId, '-1')
+    }
 
     core.setFailed(errorMessage)
   }

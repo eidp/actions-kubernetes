@@ -7,10 +7,13 @@ on:
   pull_request:
     branches:
     - main
+  issue_comment:
+    types: [created]
 
 jobs:
   test-typescript:
     runs-on: kubernetes-runner
+    if: github.event_name != 'issue_comment'
     steps:
     - name: Checkout code
       uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -38,6 +41,7 @@ jobs:
 
   test-create-context:
     runs-on: kubernetes-runner
+    if: github.event_name != 'issue_comment'
     permissions:
       contents: read
       id-token: write
@@ -103,6 +107,7 @@ jobs:
 
   test-verify-up:
     runs-on: kubernetes-runner
+    if: github.event_name != 'issue_comment'
     permissions:
       contents: read
       id-token: write
@@ -187,6 +192,7 @@ jobs:
       contents: read
       id-token: write
       pull-requests: write
+      issues: write
     environment:
       name: pr-${{ github.event.number || github.ref_name }}
       url: ${{ steps.deploy-preview.outputs.preview-url }}
@@ -264,6 +270,7 @@ jobs:
       contents: read
       id-token: write
       pull-requests: write
+      issues: write
     environment:
       name: pr-${{ github.event.number || github.ref_name }}
     steps:
@@ -350,6 +357,7 @@ jobs:
 
   check-workflow-status:
     runs-on: kubernetes-runner
+    if: github.event_name != 'issue_comment'
     permissions:
       contents: read
       actions: read
