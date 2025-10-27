@@ -269,7 +269,7 @@ async function handleBulkDeletion(
       continue
     }
 
-    if (await isProtected(ciReferenceLabel)) {
+    if (await isProtected(ciReferenceLabel, githubToken)) {
       core.info(`  🔒 Skipping ${name} (protected by keep-preview label)`)
       outputs.skippedResources.push({
         name,

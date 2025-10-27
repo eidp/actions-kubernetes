@@ -73,12 +73,13 @@ export function getCiPrefixLabel(ciPrefix: string): string {
   return ciPrefix.replace(/-+$/, '')
 }
 
-export async function isProtected(reference: string): Promise<boolean> {
-  const token = process.env.GITHUB_TOKEN
-
+export async function isProtected(
+  reference: string,
+  token: string
+): Promise<boolean> {
   if (!token) {
     core.warning(
-      'GITHUB_TOKEN not found in environment, skipping protection check for reference: ' +
+      'GitHub token not provided, skipping protection check for reference: ' +
         reference
     )
     return false
