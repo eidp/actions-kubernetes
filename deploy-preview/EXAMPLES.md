@@ -13,7 +13,7 @@ on:
 
 concurrency:
   group: pr-${{ github.event.number || github.event.issue.number }}
-  cancel-in-progress: ${{ github.event.action != 'closed' }}
+  cancel-in-progress: false
 
 jobs:
   preview:
