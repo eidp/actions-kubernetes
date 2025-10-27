@@ -61,15 +61,19 @@ export async function postOrUpdatePRComment(
     }
 
     core.info('✅ PR comment posted successfully')
-  } catch (error: any) {
-    if (error.status === 403) {
+  } catch (error: unknown) {
+    const hasStatus = error instanceof Error && 'status' in error
+    const status = hasStatus ? (error as { status: number }).status : null
+    const message = error instanceof Error ? error.message : String(error)
+
+    if (status === 403) {
       core.warning(
         'Insufficient permissions to post PR comment. Ensure the github-token has pull-requests:write permission.'
       )
-    } else if (error.status === 404) {
+    } else if (status === 404) {
       core.warning(`PR #${prNumber} not found or comment access denied`)
     } else {
-      core.warning(`Failed to post PR comment: ${error.message}`)
+      core.warning(`Failed to post PR comment: ${message}`)
     }
   }
 }
@@ -91,12 +95,16 @@ export async function checkIfPROpen(
     })
 
     return pr.state === 'open'
-  } catch (error: any) {
-    if (error.status === 404) {
+  } catch (error: unknown) {
+    const hasStatus = error instanceof Error && 'status' in error
+    const status = hasStatus ? (error as { status: number }).status : null
+    const message = error instanceof Error ? error.message : String(error)
+
+    if (status === 404) {
       core.debug(`PR #${prNumber} not found`)
       return false
     }
-    core.warning(`Failed to check PR status: ${error.message}`)
+    core.warning(`Failed to check PR status: ${message}`)
     return false
   }
 }

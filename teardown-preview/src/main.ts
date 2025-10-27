@@ -1,5 +1,6 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
+import * as k8s from '@kubernetes/client-node'
 import { ActionInputs, ActionOutputs } from './types'
 import {
   parseAgeToSeconds,
@@ -129,7 +130,7 @@ async function run(): Promise<void> {
 async function handleTargetedDeletion(
   inputs: ActionInputs,
   outputs: ActionOutputs,
-  kc: any,
+  kc: k8s.KubeConfig,
   githubToken: string
 ): Promise<void> {
   core.startGroup(
@@ -220,7 +221,7 @@ async function handleTargetedDeletion(
 async function handleBulkDeletion(
   inputs: ActionInputs,
   outputs: ActionOutputs,
-  kc: any,
+  kc: k8s.KubeConfig,
   githubToken: string
 ): Promise<void> {
   core.startGroup('Discovering all preview deployments')

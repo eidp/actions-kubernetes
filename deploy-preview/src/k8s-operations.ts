@@ -12,6 +12,7 @@ export async function createOrUpdateCustomObject(
     namespace: string
     plural: string
     name: string
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     body: any
     resourceType: string
   }
@@ -25,8 +26,8 @@ export async function createOrUpdateCustomObject(
       body: params.body
     })
     core.info(`✅ ${params.resourceType} created successfully`)
-  } catch (error: any) {
-    if (error.code === 409) {
+  } catch (error: unknown) {
+    if (error instanceof Error && 'code' in error && error.code === 409) {
       core.info(`${params.resourceType} already exists, updating...`)
       try {
         const existing = (await customApi.getNamespacedCustomObject({
@@ -35,7 +36,7 @@ export async function createOrUpdateCustomObject(
           namespace: params.namespace,
           plural: params.plural,
           name: params.name
-        })) as any
+        })) as { metadata: { resourceVersion: string } }
 
         const updatedBody = {
           ...params.body,

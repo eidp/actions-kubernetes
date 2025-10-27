@@ -111,15 +111,17 @@ export async function isProtected(
     }
 
     return hasProtectionLabel
-  } catch (error: any) {
-    if (error.status === 404) {
+  } catch (error: unknown) {
+    const hasStatus = error instanceof Error && 'status' in error
+    const status = hasStatus ? (error as { status: number }).status : null
+    const message = error instanceof Error ? error.message : String(error)
+
+    if (status === 404) {
       core.debug(`PR #${reference} not found, treating as not protected`)
       return false
     }
 
-    core.warning(
-      `Failed to check protection for PR #${reference}: ${error.message}`
-    )
+    core.warning(`Failed to check protection for PR #${reference}: ${message}`)
     return false
   }
 }

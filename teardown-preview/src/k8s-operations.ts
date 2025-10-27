@@ -33,8 +33,13 @@ export async function verifyKubernetesConnectivity(
       plural: 'ocirepositories',
       limit: 1
     })
-  } catch (error: any) {
-    if (error.statusCode === 403) {
+  } catch (error: unknown) {
+    const hasStatusCode = error instanceof Error && 'statusCode' in error
+    const statusCode = hasStatusCode
+      ? (error as { statusCode: number }).statusCode
+      : null
+
+    if (statusCode === 403) {
       throw new Error(
         'Insufficient permissions to list OCIRepository resources in namespace infra-fluxcd'
       )
@@ -50,8 +55,13 @@ export async function verifyKubernetesConnectivity(
       plural: 'kustomizations',
       limit: 1
     })
-  } catch (error: any) {
-    if (error.statusCode === 403) {
+  } catch (error: unknown) {
+    const hasStatusCode = error instanceof Error && 'statusCode' in error
+    const statusCode = hasStatusCode
+      ? (error as { statusCode: number }).statusCode
+      : null
+
+    if (statusCode === 403) {
       throw new Error(
         'Insufficient permissions to list Kustomization resources in namespace infra-fluxcd'
       )
@@ -132,8 +142,11 @@ export async function deleteKustomization(
       propagationPolicy: 'Background'
     })
     core.info(`  ✅ Deleted Kustomization: ${name}`)
-  } catch (error: any) {
-    if (error.code === 404) {
+  } catch (error: unknown) {
+    const hasCode = error instanceof Error && 'code' in error
+    const code = hasCode ? (error as { code: number }).code : null
+
+    if (code === 404) {
       core.info(`  ℹ️ Kustomization ${name} already deleted`)
     } else {
       throw error
@@ -165,11 +178,15 @@ export async function deleteOCIRepository(
       }
     })
     core.info(`  ✅ Deleted OCIRepository: ${name}`)
-  } catch (error: any) {
-    if (error.code === 404) {
+  } catch (error: unknown) {
+    const hasCode = error instanceof Error && 'code' in error
+    const code = hasCode ? (error as { code: number }).code : null
+    const message = error instanceof Error ? error.message : String(error)
+
+    if (code === 404) {
       core.info(`  ℹ️ OCIRepository ${name} already deleted`)
     } else {
-      core.warning(`Failed to delete OCIRepository ${name}: ${error.message}`)
+      core.warning(`Failed to delete OCIRepository ${name}: ${message}`)
     }
   }
 }
@@ -195,9 +212,10 @@ export async function deleteMatchingOCIRepository(
     for (const oci of response.items) {
       await deleteOCIRepository(kc, oci.metadata.name, dryRun)
     }
-  } catch (error: any) {
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error)
     core.warning(
-      `Failed to find/delete matching OCIRepository for ci-reference ${ciReferenceLabel}: ${error.message}`
+      `Failed to find/delete matching OCIRepository for ci-reference ${ciReferenceLabel}: ${message}`
     )
   }
 }
@@ -252,8 +270,11 @@ export async function waitForKustomizationDeletion(
         name
       })
       await new Promise((resolve) => setTimeout(resolve, pollInterval))
-    } catch (error: any) {
-      if (error.code === 404) {
+    } catch (error: unknown) {
+      const hasCode = error instanceof Error && 'code' in error
+      const code = hasCode ? (error as { code: number }).code : null
+
+      if (code === 404) {
         return
       }
       throw error
@@ -281,8 +302,11 @@ async function waitForOCIRepositoryDeletion(
         name
       })
       await new Promise((resolve) => setTimeout(resolve, pollInterval))
-    } catch (error: any) {
-      if (error.code === 404) {
+    } catch (error: unknown) {
+      const hasCode = error instanceof Error && 'code' in error
+      const code = hasCode ? (error as { code: number }).code : null
+
+      if (code === 404) {
         return
       }
       throw error

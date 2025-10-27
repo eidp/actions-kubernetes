@@ -118,10 +118,9 @@ export async function checkPermissions(
     }
 
     return hasWriteAccess
-  } catch (error: any) {
-    core.warning(
-      `Failed to check permissions for ${username}: ${error.message}`
-    )
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error)
+    core.warning(`Failed to check permissions for ${username}: ${message}`)
     return false
   }
 }
@@ -155,8 +154,9 @@ export async function rejectUnauthorised(
     })
 
     core.setFailed(`User ${username} does not have write access`)
-  } catch (error: any) {
-    core.warning(`Failed to post permission denied message: ${error.message}`)
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error)
+    core.warning(`Failed to post permission denied message: ${message}`)
     throw error
   }
 }
@@ -179,8 +179,9 @@ export async function addReaction(
       content: reaction
     })
     core.info(`Added ${reaction} reaction to comment`)
-  } catch (error: any) {
-    core.warning(`Failed to add reaction: ${error.message}`)
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error)
+    core.warning(`Failed to add reaction: ${message}`)
   }
 }
 
