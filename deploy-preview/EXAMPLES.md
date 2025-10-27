@@ -37,7 +37,7 @@ jobs:
         uses: eidp/actions-kubernetes/create-context@v0
         with:
           # This references the development cluster. Preview environments are typically deployed to a development cluster.
-          environment: development
+          cluster: development
           api-server: ${{ vars.K8S_API_SERVER_DEVELOPMENT }}
           certificate-authority-data:
             ${{ secrets.K8S_CERTIFICATE_AUTHORITY_DATA_DEVELOPMENT }}
