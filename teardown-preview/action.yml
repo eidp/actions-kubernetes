@@ -54,6 +54,10 @@ inputs:
       when reference is not provided.'
     required: false
     default: ''
+  github-token:
+    description: 'GitHub token for posting PR comments. Requires pull-requests:write permission.'
+    required: false
+    default: ''
 
 outputs:
   deleted-count:

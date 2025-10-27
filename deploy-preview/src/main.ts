@@ -1,101 +1,28 @@
 import * as core from '@actions/core'
-import * as github from '@actions/github'
-import * as k8s from '@kubernetes/client-node'
-import { Kustomization, OCIRepository } from './types'
-
-function sleep(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms))
-}
-
-function sanitizeName(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9-]/g, '')
-}
-
-function sanitizeLabelValue(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9-_.]/g, '_')
-    .replace(/^[^a-z0-9]+/, '')
-    .substring(0, 63)
-    .replace(/[^a-z0-9]+$/, '')
-}
-
-function truncateName(name: string, maxLength: number = 63): string {
-  if (name.length > maxLength) {
-    core.warning(`Name truncated to ${maxLength} characters: ${name}`)
-    return name.substring(0, maxLength)
-  }
-  return name
-}
-
-async function createOrUpdateCustomObject(
-  customApi: k8s.CustomObjectsApi,
-  params: {
-    group: string
-    version: string
-    namespace: string
-    plural: string
-    name: string
-    body: any
-    resourceType: string
-  }
-): Promise<void> {
-  try {
-    await customApi.createNamespacedCustomObject({
-      group: params.group,
-      version: params.version,
-      namespace: params.namespace,
-      plural: params.plural,
-      body: params.body
-    })
-    core.info(`✅ ${params.resourceType} created successfully`)
-  } catch (error: any) {
-    if (error.code === 409) {
-      core.info(`${params.resourceType} already exists, updating...`)
-      try {
-        const existing = (await customApi.getNamespacedCustomObject({
-          group: params.group,
-          version: params.version,
-          namespace: params.namespace,
-          plural: params.plural,
-          name: params.name
-        })) as any
-
-        const updatedBody = {
-          ...params.body,
-          metadata: {
-            ...params.body.metadata,
-            resourceVersion: existing.metadata.resourceVersion
-          }
-        }
-
-        await customApi.replaceNamespacedCustomObject({
-          group: params.group,
-          version: params.version,
-          namespace: params.namespace,
-          plural: params.plural,
-          name: params.name,
-          body: updatedBody
-        })
-        core.info(`✅ ${params.resourceType} updated successfully`)
-      } catch (updateError) {
-        throw new Error(
-          `Failed to update ${params.resourceType}: ${updateError}`
-        )
-      }
-    } else {
-      throw new Error(`Failed to create ${params.resourceType}: ${error}`)
-    }
-  }
-}
+import { postDeploymentComment } from './pr-comments'
+import { sanitizeName, truncateName } from './utils'
+import {
+  verifyKubernetesConnectivity,
+  createOCIRepository,
+  createKustomization,
+  discoverPreviewURL
+} from './k8s-operations'
+import { generateDeploymentSummary } from './summary'
 
 async function run(): Promise<void> {
+  let tenantName = ''
+  let namespace = ''
+  let ciPrefix = ''
+  let gitBranch = ''
+  let previewUrl = ''
+  const githubToken = core.getInput('github-token')
+
   try {
     const environment = core.getInput('environment', { required: true })
     const kubernetesContext = core.getInput('kubernetes-context', {
       required: true
     })
-    const tenantName = core.getInput('tenant-name', { required: true })
+    tenantName = core.getInput('tenant-name', { required: true })
     const reference = core.getInput('reference', { required: true })
     const ciPrefixLengthStr = core.getInput('ci-prefix-length') || '16'
     const chartVersion = core.getInput('chart-version')
@@ -111,48 +38,19 @@ async function run(): Promise<void> {
     }
 
     // Verify Kubernetes connectivity
-    core.startGroup('Verifying Kubernetes connectivity')
-
-    const kc = new k8s.KubeConfig()
-    kc.loadFromDefault()
-
-    const contexts = kc.getContexts()
-    const contextExists = contexts.some((ctx) => ctx.name === kubernetesContext)
-
-    if (!contextExists) {
-      core.error(
-        `Cannot find context '${kubernetesContext}' in kubeconfig. Available contexts:`
-      )
-      contexts.forEach((ctx) => core.info(`  - ${ctx.name}`))
-      throw new Error(`Context '${kubernetesContext}' does not exist`)
-    }
-
-    kc.setCurrentContext(kubernetesContext)
-    core.info(`Using context: ${kubernetesContext}`)
-
-    const coreV1Api = kc.makeApiClient(k8s.CoreV1Api)
-    try {
-      await coreV1Api.listNamespace()
-      core.info('✅ Successfully connected to cluster')
-    } catch (error) {
-      throw new Error(
-        `Cannot connect to the cluster using context '${kubernetesContext}': ${error}`
-      )
-    }
-
-    core.endGroup()
+    const kc = await verifyKubernetesConnectivity(kubernetesContext)
 
     core.startGroup('Generating resource names')
 
     core.info(`Using reference: ${reference}`)
 
     const truncatedRef = reference.substring(0, ciPrefixLength)
-    const ciPrefix = sanitizeName(`ci-${truncatedRef}-`)
+    ciPrefix = sanitizeName(`ci-${truncatedRef}-`)
     core.info(`Generated CI prefix: ${ciPrefix}`)
 
     const ociRepoName = truncateName(`${ciPrefix}${tenantName}-oci`)
     const kustomizationName = truncateName(`${ciPrefix}${tenantName}-tenant`)
-    const namespace = truncateName(`${ciPrefix}${tenantName}`)
+    namespace = truncateName(`${ciPrefix}${tenantName}`)
 
     core.info(`OCIRepository name: ${ociRepoName}`)
     core.info(`Kustomization name: ${kustomizationName}`)
@@ -167,207 +65,67 @@ async function run(): Promise<void> {
 
     core.startGroup('Creating FluxCD resources')
 
-    const customApi = kc.makeApiClient(k8s.CustomObjectsApi)
-
-    const ciReferenceLabel = sanitizeLabelValue(reference)
-    const repositoryLabel = sanitizeLabelValue(
-      `${github.context.repo.owner}_${github.context.repo.repo}`
-    )
-
-    core.info(`Creating OCIRepository: ${ociRepoName}`)
-
-    const ociRepository: OCIRepository = {
-      apiVersion: 'source.toolkit.fluxcd.io/v1',
-      kind: 'OCIRepository',
-      metadata: {
-        name: ociRepoName,
-        namespace: 'infra-fluxcd',
-        labels: {
-          'app.kubernetes.io/managed-by': 'github-actions',
-          'app.kubernetes.io/created-by': 'deploy-preview',
-          'eidp.com/preview-deployment': 'true',
-          'eidp.com/ci-reference': ciReferenceLabel,
-          'eidp.com/repository': repositoryLabel
-        }
-      },
-      spec: {
-        interval: '5m',
-        url: `oci://cr.eidp.io/tenant-definitions/${tenantName}`,
-        ref: {
-          tag: 'latest'
-        },
-        secretRef: {
-          // TODO: We need to this secret name more generic and make sure it exists in all instances to prevent leaking an implementation detail
-          //  besides, customers do not have a way to look up this secret name
-          name: 'eidp-harbor-pull-credential'
-        }
-      }
-    }
-
-    await createOrUpdateCustomObject(customApi, {
-      group: 'source.toolkit.fluxcd.io',
-      version: 'v1',
-      namespace: 'infra-fluxcd',
-      plural: 'ocirepositories',
+    await createOCIRepository(kc, {
       name: ociRepoName,
-      body: ociRepository,
-      resourceType: 'OCIRepository'
+      tenantName,
+      reference
     })
 
-    const gitBranch =
-      process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || ''
+    gitBranch = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || ''
 
-    const helmReleaseName = `${ciPrefix}${tenantName}`
-    const releaseName = `${ciPrefix}${tenantName}-tenant`
-
-    const postBuildSubstitute: Record<string, string> = {
-      instanceName: 'eidp',
-      clusterName: 'development',
-      environmentName: environment,
-      helmReleaseName: helmReleaseName,
-      releaseName: releaseName,
-      gitBranch: gitBranch,
-      namespace: namespace,
-      namePrefix: ciPrefix,
-      objectStoreEndpoint: 'https://core.fuga.cloud:8080'
-    }
-
-    if (chartVersion) {
-      postBuildSubstitute.chartVersion = chartVersion
-    }
-
-    core.info(`Deploying preview tenant: ${kustomizationName}`)
-
-    const kustomization: Kustomization = {
-      apiVersion: 'kustomize.toolkit.fluxcd.io/v1',
-      kind: 'Kustomization',
-      metadata: {
-        name: kustomizationName,
-        namespace: 'infra-fluxcd',
-        labels: {
-          'app.kubernetes.io/managed-by': 'github-actions',
-          'app.kubernetes.io/created-by': 'deploy-preview',
-          'eidp.com/preview-deployment': 'true',
-          'eidp.com/ci-reference': ciReferenceLabel,
-          'eidp.com/repository': repositoryLabel
-        }
-      },
-      spec: {
-        serviceAccountName: 'flux-deployment-controller',
-        interval: '10m',
-        sourceRef: {
-          kind: 'OCIRepository',
-          name: ociRepoName
-        },
-        path: './',
-        prune: true,
-        wait: true,
-        timeout: timeout,
-        postBuild: {
-          substitute: postBuildSubstitute
-        }
-      }
-    }
-
-    await createOrUpdateCustomObject(customApi, {
-      group: 'kustomize.toolkit.fluxcd.io',
-      version: 'v1',
-      namespace: 'infra-fluxcd',
-      plural: 'kustomizations',
+    await createKustomization(kc, {
       name: kustomizationName,
-      body: kustomization,
-      resourceType: 'Kustomization'
+      ociRepoName,
+      tenantName,
+      reference,
+      ciPrefix,
+      namespace,
+      environment,
+      gitBranch,
+      chartVersion,
+      timeout
     })
 
     core.endGroup()
 
-    core.startGroup('Discovering preview URL')
-
-    let previewUrl = ''
-
-    await sleep(5000)
-
-    try {
-      const networkingApi = kc.makeApiClient(k8s.NetworkingV1Api)
-      const ingresses = await networkingApi.listNamespacedIngress({
-        namespace,
-        labelSelector: ingressSelector
-      })
-
-      if (ingresses.items.length === 0) {
-        core.warning(`No ingress resources found in namespace ${namespace}`)
-        if (ingressSelector) {
-          core.info(`Label selector used: ${ingressSelector}`)
-        }
-        core.info('Preview deployment is ready but no URL is available')
-      } else if (ingresses.items.length > 1 && !ingressSelector) {
-        core.setFailed(
-          `Found ${ingresses.items.length} ingress resources in namespace ${namespace} but no ingress-selector was provided. ` +
-            `Please specify the ingress-selector input with a label selector to select the correct ingress.`
-        )
-      } else {
-        core.info(
-          `Found ${ingresses.items.length} ingress(es) in namespace ${namespace}`
-        )
-        if (ingressSelector) {
-          core.info(`Label selector used: ${ingressSelector}`)
-        }
-
-        const ingress = ingresses.items[0]
-        const host = ingress.spec?.rules?.[0]?.host
-
-        if (host) {
-          const hasTls = ingress.spec?.tls && ingress.spec.tls.length > 0
-
-          previewUrl = hasTls ? `https://${host}` : `http://${host}`
-          core.info(`✅ Preview URL discovered: ${previewUrl}`)
-        } else {
-          core.warning('Ingress found but no host configured')
-        }
-      }
-    } catch (error) {
-      core.warning(`Failed to discover preview URL: ${error}`)
-    }
-
+    previewUrl = await discoverPreviewURL(kc, namespace, ingressSelector)
     core.setOutput('preview-url', previewUrl)
-    core.endGroup()
 
-    core.startGroup('Generating GitHub summary')
-
-    await core.summary
-      .addHeading('✅ Preview deployment successful', 2)
-      .addHeading('Deployment details', 3)
-      .addTable([
-        [
-          { data: 'Field', header: true },
-          { data: 'Value', header: true }
-        ],
-        [{ data: 'Tenant name' }, { data: tenantName }],
-        [{ data: 'CI prefix' }, { data: ciPrefix }],
-        [{ data: 'Namespace' }, { data: namespace }],
-        [{ data: 'OCIRepository' }, { data: ociRepoName }],
-        [{ data: 'Kustomization' }, { data: kustomizationName }],
-        [{ data: 'Git branch' }, { data: gitBranch }]
-      ])
-      .addRaw(
-        previewUrl
-          ? `\n### 🌐 Preview URL\n\n**[${previewUrl}](${previewUrl})**\n`
-          : ''
-      )
-      .addRaw(
-        `\n---\n*Deployment timestamp: ${new Date().toISOString().replace('T', ' ').substring(0, 19)} UTC*`
-      )
-      .write()
-
-    core.endGroup()
+    await generateDeploymentSummary({
+      tenantName,
+      ciPrefix,
+      namespace,
+      ociRepoName,
+      kustomizationName,
+      gitBranch,
+      previewUrl
+    })
 
     core.info('✅ Preview deployment resources created successfully')
+
+    // Post success comment to PR
+    await postDeploymentComment(githubToken, true, {
+      tenantName,
+      namespace,
+      ciPrefix,
+      previewUrl,
+      gitBranch
+    })
   } catch (error) {
-    if (error instanceof Error) {
-      core.setFailed(error.message)
-    } else {
-      core.setFailed('An unexpected error occurred')
-    }
+    const errorMessage =
+      error instanceof Error ? error.message : 'An unexpected error occurred'
+
+    // Post failure comment to PR
+    await postDeploymentComment(githubToken, false, {
+      tenantName,
+      namespace,
+      ciPrefix,
+      previewUrl,
+      gitBranch,
+      errorMessage
+    })
+
+    core.setFailed(errorMessage)
   }
 }
 

@@ -18,6 +18,7 @@
   "include": [
     "create-context/src",
     "deploy-preview/src",
-    "teardown-preview/src"
+    "teardown-preview/src",
+    "shared/src"
   ]
 }

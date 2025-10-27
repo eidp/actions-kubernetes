@@ -26,6 +26,7 @@ Protection checking is always enabled - PRs with the "keep-preview" label will b
 |`timeout`            |Timeout for wait-for-deletion.                                                                                            |No      |`5m`    |
 |`dry-run`            |Report what would be deleted without actually deleting.                                                                   |No      |`false` |
 |`max-age`            |Maximum age before deletion (e.g., 7d, 48h). Only used for bulk cleanup when reference is not provided.                   |No      |``      |
+|`github-token`       |GitHub token for posting PR comments. Requires pull-requests:write permission.                                            |No      |``      |
 
 ## 📤 Outputs
 

@@ -48,6 +48,7 @@ To prevent multiple preview deployments for the same PR, it is recommended to ad
 |`chart-version`      |Optional chart version override.                                                                                                                                                                                                                   |No      |``     |
 |`timeout`            |The time to wait for the deployment to be completed successfully.                                                                                                                                                                                  |No      |`5m`   |
 |`ingress-selector`   |Label selector to identify the ingress resource for preview URL discovery (e.g. app=my-app). Required if multiple ingresses exist in the namespace.                                                                                                |No      |``     |
+|`github-token`       |GitHub token for posting PR comments. Requires pull-requests:write permission.                                                                                                                                                                     |No      |``     |
 
 ## 📤 Outputs
 

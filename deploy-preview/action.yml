@@ -72,6 +72,10 @@ inputs:
     description: 'Label selector to identify the ingress resource for preview URL discovery (e.g. app=my-app). Required if multiple ingresses exist in the namespace.'
     required: false
     default: ''
+  github-token:
+    description: 'GitHub token for posting PR comments. Requires pull-requests:write permission.'
+    required: false
+    default: ''
 
 outputs:
   oci-repository-name:

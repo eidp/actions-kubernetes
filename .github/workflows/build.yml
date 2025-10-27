@@ -186,12 +186,14 @@ jobs:
     permissions:
       contents: read
       id-token: write
+      pull-requests: write
     environment:
       name: pr-${{ github.event.number || github.ref_name }}
       url: ${{ steps.deploy-preview.outputs.preview-url }}
     outputs:
       oci-repository-name: ${{ steps.deploy-preview.outputs.oci-repository-name }}
       kustomization-name: ${{ steps.deploy-preview.outputs.kustomization-name }}
+      namespace: ${{ steps.deploy-preview.outputs.namespace }}
     steps:
     - name: Checkout code
       uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -219,6 +221,7 @@ jobs:
         chart-version: '0.4.0'
         tenant-name: actions-kubernetes
         reference: ${{ github.event.number || github.ref_name }}
+        github-token: ${{ github.token }}
         timeout: 5m
 
     - name: Assert deploy-preview happy flow status
@@ -260,7 +263,7 @@ jobs:
     permissions:
       contents: read
       id-token: write
-      pull-requests: read
+      pull-requests: write
     environment:
       name: pr-${{ github.event.number || github.ref_name }}
     steps:
@@ -286,9 +289,8 @@ jobs:
       with:
         kubernetes-context: ${{ steps.create-context.outputs.context-name }}
         reference: ${{ github.event.number || github.ref_name }}
+        github-token: ${{ github.token }}
         dry-run: 'true'
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     - name: Assert teardown preview dry-run outputs
       uses: nick-fields/assert-action@aa0067e01f0f6545c31755d6ca128c5a3a14f6bf # v2.0.0
@@ -302,8 +304,7 @@ jobs:
       with:
         kubernetes-context: ${{ steps.create-context.outputs.context-name }}
         dry-run: 'true'
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        github-token: ${{ github.token }}
 
     - name: Assert teardown preview bulk dry-run outputs
       uses: nick-fields/assert-action@aa0067e01f0f6545c31755d6ca128c5a3a14f6bf # v2.0.0
@@ -319,8 +320,7 @@ jobs:
         kubernetes-context: ${{ steps.create-context.outputs.context-name }}
         reference: ${{ github.event.number || github.ref_name }}
         wait-for-deletion: 'true'
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        github-token: ${{ github.token }}
 
     - name: 'Verify that preview deployment resources do not exist anymore'
       run: |
@@ -328,17 +328,23 @@ jobs:
 
         echo "Verifying OCIRepository is deleted..."
         if kubectl get ocirepository ${{ needs.test-deploy-preview.outputs.oci-repository-name }} -n infra-fluxcd &>/dev/null; then
-        echo "❌ OCIRepository '${{ needs.test-deploy-preview.outputs.oci-repository-name }}' still exists"
-        exit 1
+          echo "❌ OCIRepository '${{ needs.test-deploy-preview.outputs.oci-repository-name }}' still exists"
+          exit 1
         fi
         echo "✅ OCIRepository deleted"
 
         echo "Verifying Kustomization is deleted..."
         if kubectl get kustomization ${{ needs.test-deploy-preview.outputs.kustomization-name }} -n infra-fluxcd &>/dev/null; then
-        echo "❌ Kustomization '${{ needs.test-deploy-preview.outputs.kustomization-name }}' still exists"
-        exit 1
+          echo "❌ Kustomization '${{ needs.test-deploy-preview.outputs.kustomization-name }}' still exists"
+          exit 1
         fi
         echo "✅ Kustomization deleted"
+
+        echo "Verifying preview namespace is deleted..."
+        if kubectl get namespace ${{ needs.test-deploy-preview.outputs.namespace }} &>/dev/null; then
+          echo "❌ Namespace '${{ needs.test-deploy-preview.outputs.namespace }}' still exists"
+          exit 1
+        fi
 
         echo "✅ All preview resources successfully deleted"
 
@@ -352,4 +358,4 @@ jobs:
       id: check-workflow-status
       uses: eidp/actions-common/check-workflow-status@82bb2cfb07c831032efe550b99659804b2625fd2 # v1.2.1
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+        github-token: ${{ github.token }}
