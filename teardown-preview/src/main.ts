@@ -174,7 +174,7 @@ async function handleTargetedDeletion(
         outputs.deletedResources.push({
           type: 'Kustomization',
           name: kust.metadata.name,
-          ciPrefix: ciReferenceLabel
+          reference: ciReferenceLabel
         })
         outputs.deletedCount++
       })
@@ -187,7 +187,7 @@ async function handleTargetedDeletion(
         outputs.deletedResources.push({
           type: 'Kustomization',
           name: kust.metadata.name,
-          ciPrefix: ciReferenceLabel
+          reference: ciReferenceLabel
         })
         outputs.deletedCount++
       }
@@ -310,7 +310,7 @@ async function handleBulkDeletion(
       type: 'Kustomization',
       name,
       age: ageDisplay,
-      ciPrefix: ciReferenceLabel
+      reference: ciReferenceLabel
     })
     outputs.deletedCount++
   }

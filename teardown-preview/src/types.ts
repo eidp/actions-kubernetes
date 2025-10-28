@@ -23,7 +23,7 @@ export interface DeletedResource {
   type: 'Kustomization' | 'OCIRepository'
   name: string
   age?: string
-  ciPrefix?: string
+  reference?: string
 }
 
 export interface SkippedResource {

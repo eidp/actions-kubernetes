@@ -37,13 +37,13 @@ export async function generateSummary(
         { data: 'Resource', header: true },
         { data: 'Type', header: true },
         { data: 'Age', header: true },
-        { data: 'CI Prefix', header: true }
+        { data: 'Reference', header: true }
       ],
       ...outputs.deletedResources.map((r) => [
         { data: r.name },
         { data: r.type },
         { data: r.age || 'N/A' },
-        { data: r.ciPrefix || 'N/A' }
+        { data: r.reference || 'N/A' }
       ])
     ])
   }
