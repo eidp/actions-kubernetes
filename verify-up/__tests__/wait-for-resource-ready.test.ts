@@ -1,8 +1,7 @@
 import * as k8s from '@kubernetes/client-node'
 import * as core from '@actions/core'
 import { waitForResourceReady } from '../src/flux-resources'
-import { FluxResourceSpec } from '../src/flux-resource-spec'
-import { HelmRelease } from '../src/types'
+import { FluxResourceSpec, HelmRelease } from '../src/types'
 
 jest.mock('@actions/core')
 

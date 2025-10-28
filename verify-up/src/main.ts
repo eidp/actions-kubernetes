@@ -3,6 +3,7 @@ import { verifyKubernetesConnectivity } from '../../shared/src/k8s-connectivity'
 import { verifySpecificResource, verifyAllResources } from './k8s-verification'
 import { generateSummary } from './summary'
 import { DeploymentStatus } from './types'
+import { parseDuration } from './utils'
 
 async function run(): Promise<void> {
   let deploymentStatuses: DeploymentStatus[] = []
@@ -21,14 +22,16 @@ async function run(): Promise<void> {
     chartVersion = core.getInput('chart-version')
     timeout = core.getInput('timeout') || '3m'
     podSelector = core.getInput('pod-selector')
-    const initialWait = parseInt(core.getInput('initial-wait') || '0', 10)
+    const initialWaitInput = core.getInput('initial-wait') || '0'
 
     // Initial wait
+    const initialWait = parseDuration(initialWaitInput)
+
     if (initialWait > 0) {
       core.info(
-        `Waiting ${initialWait} seconds for Kubernetes resources to reconcile...`
+        `Waiting ${initialWaitInput} for Kubernetes resources to reconcile...`
       )
-      await new Promise((resolve) => setTimeout(resolve, initialWait * 1000))
+      await new Promise((resolve) => setTimeout(resolve, initialWait))
     } else {
       core.info('Skipping initial wait (initial-wait=0)')
     }

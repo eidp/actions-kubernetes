@@ -1,4 +1,4 @@
-import { parseFluxResourceInput } from '../src/flux-resource-spec'
+import { parseFluxResourceInput } from '../src/flux-resources'
 
 describe('flux-resources', () => {
   describe('parseFluxResourceInput', () => {

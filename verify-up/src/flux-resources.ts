@@ -2,17 +2,75 @@ import * as core from '@actions/core'
 import * as k8s from '@kubernetes/client-node'
 import {
   FluxResource,
+  FluxResourceSpec,
   HelmRelease,
-  KustomizationResource,
+  Kustomization,
   DeploymentStatus
 } from './types'
 import { isResourceReady, createDeploymentStatus } from './utils'
 import { ANSI_RED, ANSI_RESET } from '../../shared/src/constants'
-import { parseFluxResourceInput } from './flux-resource-spec'
-import type { FluxResourceSpec } from './flux-resource-spec'
 
-export { parseFluxResourceInput }
-export type { FluxResourceSpec }
+export function parseFluxResourceInput(fluxResource: string): FluxResourceSpec {
+  const parts = fluxResource.split('/')
+  if (parts.length !== 2) {
+    throw new Error(
+      `Invalid flux-resource format: ${fluxResource}. Expected format: <type>/<name> (e.g., helmreleases/my-release or ks/my-kustomization)`
+    )
+  }
+
+  const [resourceType, name] = parts
+
+  const resourceMap: Record<string, Omit<FluxResourceSpec, 'name'>> = {
+    helmrelease: {
+      group: 'helm.toolkit.fluxcd.io',
+      version: 'v2',
+      plural: 'helmreleases',
+      kind: 'HelmRelease'
+    },
+    helmreleases: {
+      group: 'helm.toolkit.fluxcd.io',
+      version: 'v2',
+      plural: 'helmreleases',
+      kind: 'HelmRelease'
+    },
+    hr: {
+      group: 'helm.toolkit.fluxcd.io',
+      version: 'v2',
+      plural: 'helmreleases',
+      kind: 'HelmRelease'
+    },
+    kustomization: {
+      group: 'kustomize.toolkit.fluxcd.io',
+      version: 'v1',
+      plural: 'kustomizations',
+      kind: 'Kustomization'
+    },
+    kustomizations: {
+      group: 'kustomize.toolkit.fluxcd.io',
+      version: 'v1',
+      plural: 'kustomizations',
+      kind: 'Kustomization'
+    },
+    ks: {
+      group: 'kustomize.toolkit.fluxcd.io',
+      version: 'v1',
+      plural: 'kustomizations',
+      kind: 'Kustomization'
+    }
+  }
+
+  const spec = resourceMap[resourceType.toLowerCase()]
+  if (!spec) {
+    throw new Error(
+      `Unsupported flux resource type: ${resourceType}. Supported types: helmrelease/helmreleases (hr), kustomization/kustomizations (ks)`
+    )
+  }
+
+  return {
+    ...spec,
+    name
+  }
+}
 
 export async function waitForResourceReady(
   kc: k8s.KubeConfig,
@@ -158,7 +216,7 @@ export async function listAndWatchAllResources(
     version: 'v1',
     namespace: namespace,
     plural: 'kustomizations'
-  })) as { items: KustomizationResource[] }
+  })) as { items: Kustomization[] }
 
   const allResources: FluxResource[] = [
     ...helmReleases.items,
@@ -225,7 +283,7 @@ export async function listAndWatchAllResources(
             namespace: namespace,
             plural: 'kustomizations'
           }
-        )) as { items: KustomizationResource[] }
+        )) as { items: Kustomization[] }
 
         const finalResources: FluxResource[] = [
           ...finalHelmReleases.items,
@@ -279,7 +337,7 @@ export async function listAndWatchAllResources(
           { allowWatchBookmarks: true },
           (type, apiObj) => {
             if (type === 'ADDED' || type === 'MODIFIED') {
-              const resource = apiObj as KustomizationResource
+              const resource = apiObj as Kustomization
               if (isResourceReady(resource)) {
                 readyResources.add(resource.metadata.name)
                 checkComplete()
@@ -325,7 +383,7 @@ export async function listAndWatchAllResources(
           namespace: namespace,
           plural: 'kustomizations'
         }
-      )) as { items: KustomizationResource[] }
+      )) as { items: Kustomization[] }
 
       const currentResources: FluxResource[] = [
         ...currentHelmReleases.items,

@@ -1,4 +1,5 @@
 import type { FluxResource, HelmRelease, DeploymentStatus } from './types'
+import parse from 'parse-duration'
 
 export function isResourceReady(resource: FluxResource): boolean {
   const conditions = resource.status?.conditions || []
@@ -30,17 +31,20 @@ export function getChartVersion(helmRelease: HelmRelease): string | undefined {
   return helmRelease.status?.history?.[0]?.chartVersion
 }
 
-export function parseTimeout(timeout: string): number {
-  const match = timeout.match(/^(\d+)([smh])$/)
-  if (!match) {
+export function parseDuration(duration: string): number {
+  const result = parse(duration)
+
+  if (result === null || result === undefined) {
     throw new Error(
-      `Invalid timeout format: ${timeout}. Expected format: <number><unit> (e.g., 3m, 180s)`
+      `Invalid duration format: ${duration}. Expected format: duration string (e.g., 3m, 180s, 1h30m, 7h3m45s)`
     )
   }
 
-  const value = parseInt(match[1], 10)
-  const unit = match[2] as 's' | 'm' | 'h'
+  if (result < 0) {
+    throw new Error(
+      `Invalid duration: ${duration}. Duration cannot be negative`
+    )
+  }
 
-  const multipliers: Record<string, number> = { s: 1000, m: 60000, h: 3600000 }
-  return value * multipliers[unit]
+  return result
 }

@@ -24,11 +24,18 @@ module.exports = {
   testEnvironment: 'node',
   testMatch: ['**/*.test.ts'],
   testPathIgnorePatterns: ['/dist/', '/node_modules/'],
+  transformIgnorePatterns: ['node_modules/(?!(parse-duration)/)'],
   transform: {
     '^.+\\.ts$': [
       'ts-jest',
       {
         tsconfig: 'tsconfig.eslint.json',
+        useESM: false
+      }
+    ],
+    '^.+\\.js$': [
+      'ts-jest',
+      {
         useESM: false
       }
     ]

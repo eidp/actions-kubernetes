@@ -26,7 +26,7 @@ inputs:
     required: false
     default: ''
   timeout:
-    description: 'The time to wait for the deployment to be completed successfully. After the timeout is reached, the job will fail.'
+    description: 'The time to wait for the deployment to be completed successfully. After the timeout is reached, the job will fail. Example timeout values: 3m, 90s, 2.5m, 2m30s'
     required: false
     default: '3m'
   pod-selector:
@@ -44,7 +44,7 @@ inputs:
     required: false
     default: ''
   initial-wait:
-    description: 'Time in seconds to wait before starting verification to allow resources to reconcile. Set to 0 to disable.'
+    description: 'Time to wait before starting verification to allow resources to reconcile. Set to 0 or 0s to disable. Example values: 30s, 1m, 90s'
     required: false
     default: '0'
 

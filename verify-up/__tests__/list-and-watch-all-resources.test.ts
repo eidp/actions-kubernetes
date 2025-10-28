@@ -1,7 +1,7 @@
 import * as k8s from '@kubernetes/client-node'
 import * as core from '@actions/core'
 import { listAndWatchAllResources } from '../src/flux-resources'
-import { HelmRelease, KustomizationResource } from '../src/types'
+import { HelmRelease, Kustomization } from '../src/types'
 
 jest.mock('@actions/core')
 
@@ -71,7 +71,7 @@ describe('listAndWatchAllResources', () => {
         }
       }
 
-      const readyKustomization: KustomizationResource = {
+      const readyKustomization: Kustomization = {
         apiVersion: 'kustomize.toolkit.fluxcd.io/v1',
         kind: 'Kustomization',
         metadata: { name: 'ks-1', namespace: 'default' },
@@ -142,7 +142,7 @@ describe('listAndWatchAllResources', () => {
         }
       }
 
-      const notReadyKs: KustomizationResource = {
+      const notReadyKs: Kustomization = {
         apiVersion: 'kustomize.toolkit.fluxcd.io/v1',
         kind: 'Kustomization',
         metadata: { name: 'ks-1', namespace: 'default' },
@@ -274,7 +274,7 @@ describe('listAndWatchAllResources', () => {
     })
 
     it('should watch only Kustomizations when no HelmReleases exist', async () => {
-      const notReadyKs: KustomizationResource = {
+      const notReadyKs: Kustomization = {
         apiVersion: 'kustomize.toolkit.fluxcd.io/v1',
         kind: 'Kustomization',
         metadata: { name: 'ks-1', namespace: 'default' },
@@ -441,7 +441,7 @@ describe('listAndWatchAllResources', () => {
     })
 
     it('should reject on Kustomization watch error', async () => {
-      const notReadyKs: KustomizationResource = {
+      const notReadyKs: Kustomization = {
         apiVersion: 'kustomize.toolkit.fluxcd.io/v1',
         kind: 'Kustomization',
         metadata: { name: 'ks-1', namespace: 'default' },

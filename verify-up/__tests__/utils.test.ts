@@ -1,10 +1,10 @@
-import { HelmRelease, KustomizationResource } from '../src/types'
+import { HelmRelease, Kustomization } from '../src/types'
 import {
   isResourceReady,
   getReadyMessage,
   createDeploymentStatus,
   getChartVersion,
-  parseTimeout
+  parseDuration
 } from '../src/utils'
 
 describe('utils', () => {
@@ -22,7 +22,7 @@ describe('utils', () => {
     })
 
     it('should return false when Ready condition status is False', () => {
-      const resource: KustomizationResource = {
+      const resource: Kustomization = {
         apiVersion: 'kustomize.toolkit.fluxcd.io/v1',
         kind: 'Kustomization',
         metadata: { name: 'test', namespace: 'default' },
@@ -93,7 +93,7 @@ describe('utils', () => {
     })
 
     it('should return "Ready" when status is True but no message', () => {
-      const resource: KustomizationResource = {
+      const resource: Kustomization = {
         apiVersion: 'kustomize.toolkit.fluxcd.io/v1',
         kind: 'Kustomization',
         metadata: { name: 'test', namespace: 'default' },
@@ -149,7 +149,7 @@ describe('utils', () => {
     })
 
     it('should create deployment status for not ready Kustomization', () => {
-      const resource: KustomizationResource = {
+      const resource: Kustomization = {
         apiVersion: 'kustomize.toolkit.fluxcd.io/v1',
         kind: 'Kustomization',
         metadata: { name: 'my-kustomization', namespace: 'flux-system' },
@@ -212,27 +212,57 @@ describe('utils', () => {
     })
   })
 
-  describe('parseTimeout', () => {
+  describe('parseDuration', () => {
     it('should parse seconds correctly', () => {
-      expect(parseTimeout('30s')).toBe(30000)
-      expect(parseTimeout('180s')).toBe(180000)
+      expect(parseDuration('30s')).toBe(30000)
+      expect(parseDuration('180s')).toBe(180000)
     })
 
     it('should parse minutes correctly', () => {
-      expect(parseTimeout('3m')).toBe(180000)
-      expect(parseTimeout('5m')).toBe(300000)
+      expect(parseDuration('3m')).toBe(180000)
+      expect(parseDuration('5m')).toBe(300000)
     })
 
     it('should parse hours correctly', () => {
-      expect(parseTimeout('1h')).toBe(3600000)
-      expect(parseTimeout('2h')).toBe(7200000)
+      expect(parseDuration('1h')).toBe(3600000)
+      expect(parseDuration('2h')).toBe(7200000)
+    })
+
+    it('should parse compound durations', () => {
+      expect(parseDuration('1h30m')).toBe(5400000) // 90 minutes
+      expect(parseDuration('7h3m45s')).toBe(25425000) // 7*3600 + 3*60 + 45 seconds
+      expect(parseDuration('2h30m15s')).toBe(9015000)
+      expect(parseDuration('90m')).toBe(5400000) // 90 minutes
+    })
+
+    it('should parse durations with spaces', () => {
+      expect(parseDuration('1hr 30mins')).toBe(5400000)
+      expect(parseDuration('2 hours')).toBe(7200000)
+      expect(parseDuration('30 seconds')).toBe(30000)
+    })
+
+    it('should parse decimal durations', () => {
+      expect(parseDuration('1.5h')).toBe(5400000) // 1.5 hours
+      expect(parseDuration('2.5m')).toBe(150000) // 2.5 minutes
     })
 
     it('should throw error for invalid format', () => {
-      expect(() => parseTimeout('invalid')).toThrow('Invalid timeout format')
-      expect(() => parseTimeout('3')).toThrow('Invalid timeout format')
-      expect(() => parseTimeout('3x')).toThrow('Invalid timeout format')
-      expect(() => parseTimeout('m3')).toThrow('Invalid timeout format')
+      expect(() => parseDuration('invalid')).toThrow('Invalid duration format')
+      expect(() => parseDuration('totally-wrong')).toThrow(
+        'Invalid duration format'
+      )
+      expect(() => parseDuration('')).toThrow('Invalid duration format')
+    })
+
+    it('should throw error for negative durations', () => {
+      expect(() => parseDuration('-5m')).toThrow('Duration cannot be negative')
+      expect(() => parseDuration('-1h')).toThrow('Duration cannot be negative')
+    })
+
+    it('should allow zero duration', () => {
+      expect(parseDuration('0')).toBe(0)
+      expect(parseDuration('0s')).toBe(0)
+      expect(parseDuration('0m')).toBe(0)
     })
   })
 })

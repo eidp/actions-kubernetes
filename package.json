@@ -35,7 +35,8 @@
   "dependencies": {
     "@actions/core": "^1.11.1",
     "@actions/github": "^6.0.1",
-    "@kubernetes/client-node": "^1.4.0"
+    "@kubernetes/client-node": "^1.4.0",
+    "parse-duration": "^2.1.4"
   },
   "devDependencies": {
     "@eslint/compat": "^1.4.0",

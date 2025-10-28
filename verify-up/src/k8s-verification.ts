@@ -6,7 +6,7 @@ import {
   listAndWatchAllResources
 } from './flux-resources'
 import { DeploymentStatus, HelmRelease } from './types'
-import { getChartVersion, parseTimeout } from './utils'
+import { getChartVersion, parseDuration } from './utils'
 import { ANSI_RED, ANSI_RESET } from '../../shared/src/constants'
 
 export async function verifySpecificResource(
@@ -16,7 +16,7 @@ export async function verifySpecificResource(
   chartVersion: string | undefined,
   timeoutStr: string
 ): Promise<DeploymentStatus[]> {
-  const timeout = parseTimeout(timeoutStr)
+  const timeout = parseDuration(timeoutStr)
   const spec = parseFluxResourceInput(fluxResource)
 
   core.startGroup(
@@ -63,7 +63,7 @@ export async function verifyAllResources(
   chartVersion: string | undefined,
   timeoutStr: string
 ): Promise<DeploymentStatus[]> {
-  const timeout = parseTimeout(timeoutStr)
+  const timeout = parseDuration(timeoutStr)
 
   core.startGroup(
     `Verifying whether flux resources in namespace '${namespace}'`

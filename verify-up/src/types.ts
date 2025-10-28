@@ -29,7 +29,7 @@ export interface KustomizationStatus {
   conditions?: FluxCondition[]
 }
 
-export interface KustomizationResource {
+export interface Kustomization {
   apiVersion: 'kustomize.toolkit.fluxcd.io/v1'
   kind: 'Kustomization'
   metadata: {
@@ -39,7 +39,15 @@ export interface KustomizationResource {
   status?: KustomizationStatus
 }
 
-export type FluxResource = HelmRelease | KustomizationResource
+export type FluxResource = HelmRelease | Kustomization
+
+export interface FluxResourceSpec {
+  group: string
+  version: string
+  plural: string
+  name: string
+  kind: string
+}
 
 export interface DeploymentStatus {
   name: string
