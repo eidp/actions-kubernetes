@@ -107,12 +107,15 @@ async function run(): Promise<void> {
     // Generate summary
     core.startGroup('Generating GitHub summary')
     await core.summary
-      .addHeading('Kubernetes context created', 2)
-      .addTable([
-        [{ data: 'Context Name', header: true }, { data: cluster }],
-        [{ data: 'API Server', header: true }, { data: apiServer }],
-        [{ data: 'Cluster Name', header: true }, { data: cluster }]
-      ])
+      .addHeading('✅ Kubernetes context created', 2)
+      .addHeading('Context details', 3)
+      .addEOL()
+      .addRaw(`- **Context name**: \`${cluster}\`\n`)
+      .addRaw(`- **API server**: \`${apiServer}\`\n`)
+      .addRaw(`- **Cluster name**: \`${cluster}\`\n`)
+      .addRaw(
+        `\n---\n*Creation timestamp: ${new Date().toISOString().replace('T', ' ').substring(0, 19)} UTC*`
+      )
       .write()
     core.endGroup()
 
