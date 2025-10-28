@@ -46,6 +46,28 @@ describe('flux-resources', () => {
       })
     })
 
+    it('should parse singular form "helmrelease"', () => {
+      const result = parseFluxResourceInput('helmrelease/my-release')
+      expect(result).toEqual({
+        group: 'helm.toolkit.fluxcd.io',
+        version: 'v2',
+        plural: 'helmreleases',
+        name: 'my-release',
+        kind: 'HelmRelease'
+      })
+    })
+
+    it('should parse singular form "kustomization"', () => {
+      const result = parseFluxResourceInput('kustomization/my-kustomization')
+      expect(result).toEqual({
+        group: 'kustomize.toolkit.fluxcd.io',
+        version: 'v1',
+        plural: 'kustomizations',
+        name: 'my-kustomization',
+        kind: 'Kustomization'
+      })
+    })
+
     it('should throw error for invalid format', () => {
       expect(() => parseFluxResourceInput('invalid')).toThrow(
         'Invalid flux-resource format'

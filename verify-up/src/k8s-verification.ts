@@ -5,12 +5,8 @@ import {
   waitForResourceReady,
   listAndWatchAllResources
 } from './flux-resources'
-import {
-  DeploymentStatus,
-  HelmRelease,
-  getChartVersion,
-  parseTimeout
-} from './types'
+import { DeploymentStatus, HelmRelease } from './types'
+import { getChartVersion, parseTimeout } from './utils'
 import { ANSI_RED, ANSI_RESET } from '../../shared/src/constants'
 
 export async function verifySpecificResource(

@@ -20,6 +20,12 @@ export function parseFluxResourceInput(fluxResource: string): FluxResourceSpec {
     string,
     { group: string; version: string; plural: string; kind: string }
   > = {
+    helmrelease: {
+      group: 'helm.toolkit.fluxcd.io',
+      version: 'v2',
+      plural: 'helmreleases',
+      kind: 'HelmRelease'
+    },
     helmreleases: {
       group: 'helm.toolkit.fluxcd.io',
       version: 'v2',
@@ -31,6 +37,12 @@ export function parseFluxResourceInput(fluxResource: string): FluxResourceSpec {
       version: 'v2',
       plural: 'helmreleases',
       kind: 'HelmRelease'
+    },
+    kustomization: {
+      group: 'kustomize.toolkit.fluxcd.io',
+      version: 'v1',
+      plural: 'kustomizations',
+      kind: 'Kustomization'
     },
     kustomizations: {
       group: 'kustomize.toolkit.fluxcd.io',
@@ -49,7 +61,7 @@ export function parseFluxResourceInput(fluxResource: string): FluxResourceSpec {
   const spec = resourceMap[resourceType.toLowerCase()]
   if (!spec) {
     throw new Error(
-      `Unsupported flux resource type: ${resourceType}. Supported types: helmreleases (hr), kustomizations (ks)`
+      `Unsupported flux resource type: ${resourceType}. Supported types: helmrelease/helmreleases (hr), kustomization/kustomizations (ks)`
     )
   }
 

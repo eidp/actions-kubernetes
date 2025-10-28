@@ -4,10 +4,9 @@ import {
   FluxResource,
   HelmRelease,
   KustomizationResource,
-  DeploymentStatus,
-  isResourceReady,
-  createDeploymentStatus
+  DeploymentStatus
 } from './types'
+import { isResourceReady, createDeploymentStatus } from './utils'
 import { ANSI_RED, ANSI_RESET } from '../../shared/src/constants'
 import { parseFluxResourceInput } from './flux-resource-spec'
 import type { FluxResourceSpec } from './flux-resource-spec'
