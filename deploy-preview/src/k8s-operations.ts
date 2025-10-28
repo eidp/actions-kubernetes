@@ -66,42 +66,6 @@ export async function createOrUpdateCustomObject(
   }
 }
 
-export async function verifyKubernetesConnectivity(
-  kubernetesContext: string
-): Promise<k8s.KubeConfig> {
-  core.startGroup('Verifying Kubernetes connectivity')
-
-  const kc = new k8s.KubeConfig()
-  kc.loadFromDefault()
-
-  const contexts = kc.getContexts()
-  const contextExists = contexts.some((ctx) => ctx.name === kubernetesContext)
-
-  if (!contextExists) {
-    core.error(
-      `Cannot find context '${kubernetesContext}' in kubeconfig. Available contexts:`
-    )
-    contexts.forEach((ctx) => core.info(`  - ${ctx.name}`))
-    throw new Error(`Context '${kubernetesContext}' does not exist`)
-  }
-
-  kc.setCurrentContext(kubernetesContext)
-  core.info(`Using context: ${kubernetesContext}`)
-
-  const coreV1Api = kc.makeApiClient(k8s.CoreV1Api)
-  try {
-    await coreV1Api.listNamespace()
-    core.info('✅ Successfully connected to cluster')
-  } catch (error) {
-    throw new Error(
-      `Cannot connect to the cluster using context '${kubernetesContext}': ${error}`
-    )
-  }
-
-  core.endGroup()
-  return kc
-}
-
 export async function discoverPreviewURL(
   kc: k8s.KubeConfig,
   namespace: string,

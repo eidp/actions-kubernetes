@@ -16,7 +16,7 @@
     "format:check": "npx prettier --check .",
     "lint": "npx eslint .",
     "local-action": "npx @github/local-action ./create-context create-context/src/main.ts .env",
-    "package": "ncc build create-context/src/main.ts -o create-context/dist --source-map --license licenses.txt && ncc build deploy-preview/src/main.ts -o deploy-preview/dist --source-map --license licenses.txt && ncc build teardown-preview/src/main.ts -o teardown-preview/dist --source-map --license licenses.txt",
+    "package": "ncc build create-context/src/main.ts -o create-context/dist --source-map --license licenses.txt && ncc build deploy-preview/src/main.ts -o deploy-preview/dist --source-map --license licenses.txt && ncc build teardown-preview/src/main.ts -o teardown-preview/dist --source-map --license licenses.txt && ncc build verify-up/src/main.ts -o verify-up/dist --source-map --license licenses.txt",
     "package:watch": "npm run package -- --watch",
     "test": "npx jest",
     "all": "npm run format:write && npm run lint && npm run test && npm run package"

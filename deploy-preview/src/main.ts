@@ -2,7 +2,6 @@ import * as core from '@actions/core'
 import { postDeploymentComment } from './pr-comments'
 import { sanitizeName, truncateName } from './utils'
 import {
-  verifyKubernetesConnectivity,
   createOCIRepository,
   createKustomization,
   discoverPreviewURL
@@ -14,6 +13,7 @@ import {
   rejectUnauthorised,
   addReaction
 } from '../../shared/src/slash-commands'
+import { verifyKubernetesConnectivity } from '../../shared/src/k8s-connectivity'
 
 async function run(): Promise<void> {
   let tenantName = ''
