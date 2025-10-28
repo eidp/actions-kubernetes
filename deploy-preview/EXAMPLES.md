@@ -67,9 +67,10 @@ jobs:
           # This references the github environment for this PR, not the target cluster environment.
           environment: 'pr-${{ github.event.number || github.event.issue.number }}'
           kubernetes-context: ${{ steps.create-context.outputs.context-name }}
+          tenant-name: <<YOUR_TENANT_NAME>>
           chart-version: '${{ steps.generate.outputs.version }}'
-          tenant-name: actions-kubernetes
           reference: ${{ github.event.number || github.event.issue.number }}
+          github-token: ${{ github.token }}
           timeout: 10m
 
       - name: Verify preview deployment
@@ -87,9 +88,11 @@ jobs:
         with:
           kubernetes-context: ${{ steps.create-context.outputs.context-name }}
           reference: ${{ github.event.number || github.event.issue.number }}
-          wait-for-deletion: true
+          github-token: ${{ github.token }}
           timeout: 10m
 ```
+
+Replace `<<YOUR_TENANT_NAME>>` with your tenant name on your EIDP instance.
 
 ## Slash command integration
 
