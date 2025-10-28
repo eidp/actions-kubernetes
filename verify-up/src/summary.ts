@@ -29,34 +29,35 @@ export async function generateSummary(
 
   // Add verification details
   summary.addHeading('Verification details', 3)
-  const detailsTable: string[][] = []
+  summary.addEOL()
+  const detailsList: string[][] = []
 
   if (inputs.kubernetesContext) {
-    detailsTable.push([
+    detailsList.push([
       '**Kubernetes Context**',
       `\`${inputs.kubernetesContext}\``
     ])
   }
 
   if (inputs.namespace) {
-    detailsTable.push(['**Namespace**', `\`${inputs.namespace}\``])
+    detailsList.push(['**Namespace**', `\`${inputs.namespace}\``])
   }
 
   if (inputs.fluxResource) {
-    detailsTable.push(['**Flux Resource**', `\`${inputs.fluxResource}\``])
+    detailsList.push(['**Flux Resource**', `\`${inputs.fluxResource}\``])
     if (inputs.chartVersion) {
-      detailsTable.push(['**Chart Version**', `\`${inputs.chartVersion}\``])
+      detailsList.push(['**Chart Version**', `\`${inputs.chartVersion}\``])
     }
   } else {
-    detailsTable.push(['**Scope**', 'All Flux resources in namespace'])
+    detailsList.push(['**Scope**', 'All Flux resources in namespace'])
   }
 
   if (inputs.timeout) {
-    detailsTable.push(['**Timeout**', `\`${inputs.timeout}\``])
+    detailsList.push(['**Timeout**', `\`${inputs.timeout}\``])
   }
 
-  detailsTable.forEach((row) => {
-    summary.addRaw(`- ${row[0]}: ${row[1]}`).addEOL()
+  detailsList.forEach((item) => {
+    summary.addRaw(`- ${item[0]}: ${item[1]}\n`)
   })
 
   // Add deployment status table if we have statuses
