@@ -354,5 +354,36 @@ describe('waitForResourceReady', () => {
       eventCallback('MODIFIED', readyResource)
       await promise
     })
+
+    it('should ignore AbortError when watch is intentionally aborted', async () => {
+      const promise = waitForResourceReady(
+        mockKubeConfig,
+        'default',
+        spec,
+        60000
+      )
+
+      await new Promise((resolve) => setImmediate(resolve))
+
+      // Simulate successful completion that triggers abort
+      const readyResource: HelmRelease = {
+        ...notReadyResource,
+        status: {
+          conditions: [{ type: 'Ready', status: 'True', message: 'Ready' }]
+        }
+      }
+      eventCallback('MODIFIED', readyResource)
+
+      // Then simulate AbortError from cleanup
+      const abortError = new Error('The user aborted a request.')
+      abortError.name = 'AbortError'
+      doneCallback(abortError)
+
+      // Should still resolve successfully, not reject with AbortError
+      await expect(promise).resolves.toMatchObject({
+        name: 'test-release',
+        ready: 'True'
+      })
+    })
   })
 })

@@ -534,5 +534,55 @@ describe('listAndWatchAllResources', () => {
       const result = await promise
       expect(result).toHaveLength(1)
     })
+
+    it('should ignore AbortError when watches are intentionally aborted', async () => {
+      const notReadyHelm: HelmRelease = {
+        apiVersion: 'helm.toolkit.fluxcd.io/v2',
+        kind: 'HelmRelease',
+        metadata: { name: 'helm-1', namespace: 'default' },
+        status: {
+          conditions: [{ type: 'Ready', status: 'False', message: 'Pending' }]
+        }
+      }
+
+      mockCustomApi.listNamespacedCustomObject
+        .mockResolvedValueOnce({ items: [notReadyHelm] })
+        .mockResolvedValueOnce({ items: [] })
+        .mockResolvedValueOnce({
+          items: [
+            {
+              ...notReadyHelm,
+              status: {
+                conditions: [
+                  { type: 'Ready', status: 'True', message: 'Ready' }
+                ]
+              }
+            }
+          ]
+        })
+        .mockResolvedValueOnce({ items: [] })
+
+      const promise = listAndWatchAllResources(mockKubeConfig, 'default', 60000)
+
+      await new Promise((resolve) => setImmediate(resolve))
+
+      // Make the resource ready to trigger completion
+      helmEventCallback('MODIFIED', {
+        ...notReadyHelm,
+        status: {
+          conditions: [{ type: 'Ready', status: 'True', message: 'Ready' }]
+        }
+      })
+
+      // Simulate AbortError from cleanup
+      const abortError = new Error('The user aborted a request.')
+      abortError.name = 'AbortError'
+      helmDoneCallback(abortError)
+
+      // Should still resolve successfully, not reject with AbortError
+      const result = await promise
+      expect(result).toHaveLength(1)
+      expect(result[0].ready).toBe('True')
+    })
   })
 })

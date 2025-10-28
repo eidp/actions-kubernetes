@@ -98,6 +98,13 @@ export async function waitForResourceReady(
         (err) => {
           cleanup()
           if (err) {
+            // Ignore AbortError since we intentionally abort watches
+            if (
+              err instanceof Error &&
+              (err.name === 'AbortError' || err.message.includes('aborted'))
+            ) {
+              return
+            }
             reject(
               new Error(
                 `Watch error for ${spec.kind} '${spec.name}': ${err instanceof Error ? err.message : String(err)}`
@@ -245,6 +252,13 @@ export async function listAndWatchAllResources(
           },
           (err) => {
             if (err) {
+              // Ignore AbortError since we intentionally abort watches
+              if (
+                err instanceof Error &&
+                (err.name === 'AbortError' || err.message.includes('aborted'))
+              ) {
+                return
+              }
               cleanup()
               reject(new Error(`Watch error for HelmReleases: ${err}`))
             }
@@ -274,6 +288,13 @@ export async function listAndWatchAllResources(
           },
           (err) => {
             if (err) {
+              // Ignore AbortError since we intentionally abort watches
+              if (
+                err instanceof Error &&
+                (err.name === 'AbortError' || err.message.includes('aborted'))
+              ) {
+                return
+              }
               cleanup()
               reject(new Error(`Watch error for Kustomizations: ${err}`))
             }
