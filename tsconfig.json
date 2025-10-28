@@ -19,6 +19,7 @@
     "create-context/src",
     "deploy-preview/src",
     "teardown-preview/src",
+    "verify-up/src",
     "shared/src"
   ]
 }
