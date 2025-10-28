@@ -64,7 +64,7 @@ jobs:
         if: github.event.action != 'closed'
         uses: eidp/actions-kubernetes/deploy-preview@v0
         with:
-          # This references the github environment for this PR, not the target cluster environment.
+          # This references the GitHub environment for this PR, not the target cluster environment.
           environment: 'pr-${{ github.event.number || github.event.issue.number }}'
           kubernetes-context: ${{ steps.create-context.outputs.context-name }}
           tenant-name: <<YOUR_TENANT_NAME>>
@@ -106,11 +106,11 @@ This action has slash command support built in. When called from an `issue_comme
 **Requirements:**
 - Your workflow must include both `pull_request` and `issue_comment` triggers
 - Your workflow must have the required permissions: `contents:read`, `pull-requests:write`, `issues:write`
-- Your workflow must checkout the PR branch when triggered by slash commands (see example above)
+- Your workflow must check out the PR branch when triggered by slash commands (see example above)
 - The commenter must have write or admin access to the repository
 
 ### Why checkout the PR branch?
 
 When workflows are triggered by `issue_comment` events, GitHub runs them from the **default branch** (usually `main`) for security reasons. This means without the checkout step, your workflow would deploy code from `main` instead of the PR's code.
 
-The `xt0rted/pull-request-comment-branch` action solves this by fetching the PR's branch reference from the GitHub API, allowing you to checkout and deploy the actual PR code. This is the standard pattern used across the GitHub Actions ecosystem for slash commands.
+The `xt0rted/pull-request-comment-branch` action solves this by fetching the PR's branch reference from the GitHub API, allowing you to check out and deploy the actual PR code. This is the standard pattern used across the GitHub Actions ecosystem for slash commands.
