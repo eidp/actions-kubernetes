@@ -10,14 +10,14 @@ export async function generateSummary(
   const summary = core.summary
 
   if (inputs.dryRun) {
-    summary.addHeading('ℹ️ Dry Run: Preview Teardown Report', 2)
+    summary.addHeading('ℹ️ Dry run: Preview teardown report', 2)
   } else if (outputs.deletedCount > 0) {
-    summary.addHeading('✅ Preview Teardown Successful', 2)
+    summary.addHeading('✅ Preview teardown successful', 2)
   } else {
-    summary.addHeading('ℹ️ No Previews to Clean Up', 2)
+    summary.addHeading('ℹ️ No previews to clean up', 2)
   }
 
-  summary.addHeading('Teardown Summary', 3)
+  summary.addHeading('Teardown summary', 3)
   summary.addTable([
     [
       { data: 'Metric', header: true },
@@ -31,7 +31,7 @@ export async function generateSummary(
   ])
 
   if (outputs.deletedCount > 0) {
-    summary.addHeading(inputs.dryRun ? 'Would Delete' : 'Deleted Resources', 3)
+    summary.addHeading(inputs.dryRun ? 'Would delete' : 'Deleted resources', 3)
     summary.addTable([
       [
         { data: 'Resource', header: true },
@@ -49,7 +49,7 @@ export async function generateSummary(
   }
 
   if (outputs.skippedCount > 0) {
-    summary.addHeading('Skipped Resources', 3)
+    summary.addHeading('Skipped resources', 3)
     summary.addTable([
       [
         { data: 'Resource', header: true },
@@ -64,41 +64,34 @@ export async function generateSummary(
     ])
   }
 
-  summary.addHeading('Teardown Details', 3)
-  const detailsTable: Array<[{ data: string }, { data: string }]> = [
-    [
-      { data: '**Kubernetes Context**' },
-      { data: `\`${inputs.kubernetesContext}\`` }
-    ]
-  ]
+  summary.addHeading('Teardown details', 3)
+  summary.addEOL()
+  const detailsList: string[][] = []
+
+  detailsList.push([
+    '**Kubernetes Context**',
+    `\`${inputs.kubernetesContext}\``
+  ])
 
   if (inputs.reference) {
-    detailsTable.push([
-      { data: '**Target Reference**' },
-      { data: `\`${inputs.reference}\`` }
-    ])
+    detailsList.push(['**Target Reference**', `\`${inputs.reference}\``])
   } else {
-    detailsTable.push([{ data: '**Scope**' }, { data: 'Bulk cleanup' }])
+    detailsList.push(['**Scope**', 'Bulk cleanup'])
     if (inputs.maxAge) {
-      detailsTable.push([
-        { data: '**Max Age**' },
-        { data: `\`${inputs.maxAge}\`` }
-      ])
+      detailsList.push(['**Max Age**', `\`${inputs.maxAge}\``])
     }
   }
 
   if (inputs.waitForDeletion) {
-    detailsTable.push([
-      { data: '**Wait for Deletion**' },
-      { data: `\`${inputs.timeout}\`` }
-    ])
+    detailsList.push(['**Wait for Deletion**', `\`${inputs.timeout}\``])
   }
 
-  summary.addTable(detailsTable)
+  detailsList.forEach((item) => {
+    summary.addRaw(`- ${item[0]}: ${item[1]}\n`)
+  })
 
-  summary.addRaw('---')
   summary.addRaw(
-    `*Teardown timestamp: ${new Date().toISOString().replace('T', ' ').substring(0, 19)} UTC*`
+    `\n---\n*Teardown timestamp: ${new Date().toISOString().replace('T', ' ').substring(0, 19)} UTC*`
   )
 
   await summary.write()
