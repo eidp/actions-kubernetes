@@ -51,7 +51,12 @@ inputs:
 runs:
   using: 'composite'
   steps:
-    - name: Verify deployment with TypeScript
+    - name: Setup Node.js
+      uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+      with:
+        node-version: '20'
+
+    - name: Verify deployment is up
       shell: bash
       run: node ${{ github.action_path }}/dist/index.js
       env:
