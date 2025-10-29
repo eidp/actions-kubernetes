@@ -40,23 +40,40 @@ describe('listAndWatchAllResources', () => {
   })
 
   describe('no resources found', () => {
-    it('should return empty array and warn when no resources exist', async () => {
+    it('should throw error when no resources exist after timeout', async () => {
       mockCustomApi.listNamespacedCustomObject.mockResolvedValue({
         items: []
       })
 
-      const result = await listAndWatchAllResources(
-        mockKubeConfig,
-        'default',
-        60000
+      await expect(
+        listAndWatchAllResources(mockKubeConfig, 'default', 10)
+      ).rejects.toThrow('No HelmReleases or Kustomizations found in namespace')
+    }, 15000)
+
+    it('should fail fast on 403 permissions error', async () => {
+      const permissionError = new Error('Forbidden')
+      Object.assign(permissionError, { statusCode: 403 })
+
+      mockCustomApi.listNamespacedCustomObject.mockRejectedValue(
+        permissionError
       )
 
-      expect(result).toEqual([])
-      expect(core.warning).toHaveBeenCalledWith(
-        expect.stringContaining(
-          'No HelmReleases or Kustomizations found in namespace'
-        )
+      await expect(
+        listAndWatchAllResources(mockKubeConfig, 'default', 60000)
+      ).rejects.toThrow(
+        "Insufficient permissions to list resources in namespace 'default'"
       )
+    })
+
+    it('should fail fast on 404 namespace not found error', async () => {
+      const notFoundError = new Error('Not Found')
+      Object.assign(notFoundError, { statusCode: 404 })
+
+      mockCustomApi.listNamespacedCustomObject.mockRejectedValue(notFoundError)
+
+      await expect(
+        listAndWatchAllResources(mockKubeConfig, 'default', 60000)
+      ).rejects.toThrow("Namespace 'default' does not exist")
     })
   })
 

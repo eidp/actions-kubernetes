@@ -83,7 +83,6 @@ jobs:
         kubernetes-context: ${{ steps.create-context.outputs.context-name }}
         namespace: ${{ steps.deploy-preview.outputs.namespace }}
         chart-version: '0.4.0'
-        initial-wait: '10s'
         github-token: ${{ github.token }}
 
   test-teardown-preview:

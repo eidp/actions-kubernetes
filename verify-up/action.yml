@@ -47,10 +47,6 @@ inputs:
       such as `deploy/my-server` or `job/my-job`.
     required: false
     default: ''
-  initial-wait:
-    description: 'Time to wait before starting verification to allow resources to reconcile. Set to 0 or 0s to disable. Example values: 30s, 1m, 90s'
-    required: false
-    default: '0'
   ingress-selector:
     description: 'Label selector to identify the ingress resource for URL discovery (e.g. app=my-app). If multiple ingresses exist without a selector, a warning will be logged.'
     required: false
@@ -84,7 +80,6 @@ runs:
         INPUT_TIMEOUT: ${{ inputs.timeout }}
         INPUT_POD-SELECTOR: ${{ inputs.pod-selector }}
         INPUT_IMPORTANT-WORKLOADS: ${{ inputs.important-workloads }}
-        INPUT_INITIAL-WAIT: ${{ inputs.initial-wait }}
         INPUT_INGRESS-SELECTOR: ${{ inputs.ingress-selector }}
         INPUT_GITHUB-TOKEN: ${{ inputs.github-token }}
 

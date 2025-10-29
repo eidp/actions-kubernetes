@@ -7,7 +7,6 @@ import {
 } from './k8s-verification'
 import { generateSummary } from './summary'
 import { DeploymentStatus } from './types'
-import { parseDuration } from './utils'
 import {
   DeploymentCommentManager,
   DeploymentStatus as CommentStatus
@@ -34,22 +33,9 @@ async function run(): Promise<void> {
     chartVersion = core.getInput('chart-version')
     timeout = core.getInput('timeout') || '3m'
     podSelector = core.getInput('pod-selector')
-    const initialWaitInput = core.getInput('initial-wait') || '0'
     const ingressSelector = core.getInput('ingress-selector')
     githubToken =
       core.getInput('github-token') || process.env.GITHUB_TOKEN || ''
-
-    // Initial wait
-    const initialWait = parseDuration(initialWaitInput)
-
-    if (initialWait > 0) {
-      core.info(
-        `Waiting ${initialWaitInput} for Kubernetes resources to reconcile...`
-      )
-      await new Promise((resolve) => setTimeout(resolve, initialWait))
-    } else {
-      core.info('Skipping initial wait (initial-wait=0)')
-    }
 
     // Verify connectivity with namespace and permission checks
     const kc = await verifyKubernetesConnectivity(kubernetesContext, {

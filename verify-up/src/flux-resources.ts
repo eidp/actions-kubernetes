@@ -202,37 +202,72 @@ export async function listAndWatchAllResources(
   timeout: number
 ): Promise<DeploymentStatus[]> {
   const customApi = kc.makeApiClient(k8s.CustomObjectsApi)
+  const startTime = Date.now()
+  const retryInterval = 5000 // 5 seconds
 
-  // List all HelmReleases and Kustomizations
-  const helmReleases = (await customApi.listNamespacedCustomObject({
-    group: 'helm.toolkit.fluxcd.io',
-    version: 'v2',
-    namespace: namespace,
-    plural: 'helmreleases'
-  })) as { items: HelmRelease[] }
+  let allResources: FluxResource[] = []
+  let helmReleases: { items: HelmRelease[] }
+  let kustomizations: { items: Kustomization[] }
 
-  const kustomizations = (await customApi.listNamespacedCustomObject({
-    group: 'kustomize.toolkit.fluxcd.io',
-    version: 'v1',
-    namespace: namespace,
-    plural: 'kustomizations'
-  })) as { items: Kustomization[] }
+  // Phase 1: Discovery - Retry until at least one resource is found
+  while (allResources.length === 0) {
+    try {
+      // List all HelmReleases and Kustomizations
+      helmReleases = (await customApi.listNamespacedCustomObject({
+        group: 'helm.toolkit.fluxcd.io',
+        version: 'v2',
+        namespace: namespace,
+        plural: 'helmreleases'
+      })) as { items: HelmRelease[] }
 
-  const allResources: FluxResource[] = [
-    ...helmReleases.items,
-    ...kustomizations.items
-  ]
+      kustomizations = (await customApi.listNamespacedCustomObject({
+        group: 'kustomize.toolkit.fluxcd.io',
+        version: 'v1',
+        namespace: namespace,
+        plural: 'kustomizations'
+      })) as { items: Kustomization[] }
 
-  if (allResources.length === 0) {
-    core.warning(
-      `⚠️ No HelmReleases or Kustomizations found in namespace '${namespace}'`
-    )
-    return []
+      allResources = [...helmReleases.items, ...kustomizations.items]
+    } catch (error) {
+      // Fail fast on permissions or namespace errors
+      if (error instanceof Error && 'statusCode' in error) {
+        const statusCode = (error as { statusCode?: number }).statusCode
+        if (statusCode === 403) {
+          throw new Error(
+            `${ANSI_RED}ERROR ❌ Insufficient permissions to list resources in namespace '${namespace}'${ANSI_RESET}`
+          )
+        }
+        if (statusCode === 404) {
+          throw new Error(
+            `${ANSI_RED}ERROR ❌ Namespace '${namespace}' does not exist${ANSI_RESET}`
+          )
+        }
+      }
+      // For other errors, rethrow
+      throw error
+    }
+
+    if (allResources.length === 0) {
+      const elapsed = Date.now() - startTime
+      if (elapsed >= timeout) {
+        throw new Error(
+          `${ANSI_RED}ERROR ❌ No HelmReleases or Kustomizations found in namespace '${namespace}' within timeout${ANSI_RESET}`
+        )
+      }
+
+      const remaining = Math.floor((timeout - elapsed) / 1000)
+      core.info(
+        `No resources found yet, retrying in 5s... (${remaining}s remaining)`
+      )
+      await new Promise((resolve) => setTimeout(resolve, retryInterval))
+    }
   }
 
   core.info(
-    `Found ${helmReleases.items.length} HelmRelease(s) and ${kustomizations.items.length} Kustomization(s) in namespace '${namespace}'`
+    `Found ${helmReleases!.items.length} HelmRelease(s) and ${kustomizations!.items.length} Kustomization(s) in namespace '${namespace}'`
   )
+
+  // Phase 2: Readiness - Wait for all resources to become ready
 
   // Check if all are already ready
   const notReadyResources = allResources.filter((r) => !isResourceReady(r))
@@ -294,7 +329,7 @@ export async function listAndWatchAllResources(
     }
 
     // Watch HelmReleases
-    if (helmReleases.items.length > 0) {
+    if (helmReleases!.items.length > 0) {
       watch
         .watch(
           `/apis/helm.toolkit.fluxcd.io/v2/namespaces/${namespace}/helmreleases`,
@@ -330,7 +365,7 @@ export async function listAndWatchAllResources(
     }
 
     // Watch Kustomizations
-    if (kustomizations.items.length > 0) {
+    if (kustomizations!.items.length > 0) {
       watch
         .watch(
           `/apis/kustomize.toolkit.fluxcd.io/v1/namespaces/${namespace}/kustomizations`,
