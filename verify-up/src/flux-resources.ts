@@ -7,7 +7,11 @@ import {
   Kustomization,
   DeploymentStatus
 } from './types'
-import { isResourceReady, createDeploymentStatus } from './utils'
+import {
+  isResourceReady,
+  createDeploymentStatus,
+  getChartVersionFromResource
+} from './utils'
 import { ANSI_RED, ANSI_RESET } from '../../shared/src/constants'
 
 export function parseFluxResourceInput(fluxResource: string): FluxResourceSpec {
@@ -76,10 +80,26 @@ export async function waitForResourceReady(
   kc: k8s.KubeConfig,
   namespace: string,
   spec: FluxResourceSpec,
-  timeout: number
+  timeout: number,
+  chartVersion?: string
 ): Promise<DeploymentStatus> {
   const customApi = kc.makeApiClient(k8s.CustomObjectsApi)
   const watch = new k8s.Watch(kc)
+
+  // Helper function to check if resource meets all criteria
+  const isResourceFullyReady = (resource: FluxResource): boolean => {
+    if (!isResourceReady(resource)) {
+      return false
+    }
+
+    // If chartVersion specified and this is a HelmRelease, check version
+    if (chartVersion && spec.kind === 'HelmRelease') {
+      const deployedVersion = getChartVersionFromResource(resource)
+      return deployedVersion === chartVersion
+    }
+
+    return true
+  }
 
   // First, check if resource exists and get current state
   try {
@@ -91,15 +111,28 @@ export async function waitForResourceReady(
       name: spec.name
     })) as FluxResource
 
-    // If already ready, return immediately
-    if (isResourceReady(resource)) {
-      core.info(`✅ ${spec.kind} '${spec.name}' is already ready`)
+    // If already ready (and has correct version if specified), return immediately
+    if (isResourceFullyReady(resource)) {
+      if (chartVersion && spec.kind === 'HelmRelease') {
+        core.info(
+          `✅ ${spec.kind} '${spec.name}' is already ready with chart version ${chartVersion}`
+        )
+      } else {
+        core.info(`✅ ${spec.kind} '${spec.name}' is already ready`)
+      }
       return createDeploymentStatus(resource)
     }
 
-    core.info(
-      `${spec.kind} '${spec.name}' is not ready yet, waiting for Ready condition...`
-    )
+    if (chartVersion && spec.kind === 'HelmRelease') {
+      const deployedVersion = getChartVersionFromResource(resource)
+      core.info(
+        `${spec.kind} '${spec.name}' is not ready yet (current version: ${deployedVersion || 'unknown'}, expected: ${chartVersion}), waiting...`
+      )
+    } else {
+      core.info(
+        `${spec.kind} '${spec.name}' is not ready yet, waiting for Ready condition...`
+      )
+    }
   } catch (error) {
     if (error instanceof Error && 'statusCode' in error) {
       const statusCode = (error as { statusCode?: number }).statusCode
@@ -142,11 +175,17 @@ export async function waitForResourceReady(
           if (type === 'ADDED' || type === 'MODIFIED') {
             const resource = apiObj as FluxResource
             if (resource.metadata.name === spec.name) {
-              if (isResourceReady(resource)) {
+              if (isResourceFullyReady(resource)) {
                 cleanup()
-                core.info(
-                  `✅ ${spec.kind} '${spec.name}' in namespace '${namespace}' is ready`
-                )
+                if (chartVersion && spec.kind === 'HelmRelease') {
+                  core.info(
+                    `✅ ${spec.kind} '${spec.name}' in namespace '${namespace}' is ready with chart version ${chartVersion}`
+                  )
+                } else {
+                  core.info(
+                    `✅ ${spec.kind} '${spec.name}' in namespace '${namespace}' is ready`
+                  )
+                }
                 resolve(createDeploymentStatus(resource))
               }
             }
@@ -178,11 +217,11 @@ export async function waitForResourceReady(
           if (watchRequest) {
             watchRequest.abort()
           }
-          reject(
-            new Error(
-              `${ANSI_RED}ERROR ❌ ${spec.kind} '${spec.name}' is not ready in namespace '${namespace}' within timeout${ANSI_RESET}`
-            )
-          )
+          const errorMsg =
+            chartVersion && spec.kind === 'HelmRelease'
+              ? `${ANSI_RED}ERROR ❌ ${spec.kind} '${spec.name}' did not become ready with chart version ${chartVersion} in namespace '${namespace}' within timeout${ANSI_RESET}`
+              : `${ANSI_RED}ERROR ❌ ${spec.kind} '${spec.name}' is not ready in namespace '${namespace}' within timeout${ANSI_RESET}`
+          reject(new Error(errorMsg))
         }, timeout)
       })
       .catch((err) => {
@@ -199,7 +238,8 @@ export async function waitForResourceReady(
 export async function listAndWatchAllResources(
   kc: k8s.KubeConfig,
   namespace: string,
-  timeout: number
+  timeout: number,
+  chartVersion?: string
 ): Promise<DeploymentStatus[]> {
   const customApi = kc.makeApiClient(k8s.CustomObjectsApi)
   const startTime = Date.now()
@@ -269,21 +309,53 @@ export async function listAndWatchAllResources(
 
   // Phase 2: Readiness - Wait for all resources to become ready
 
-  // Check if all are already ready
+  // Check if all are already ready (and have correct version if specified)
   const notReadyResources = allResources.filter((r) => !isResourceReady(r))
-  if (notReadyResources.length === 0) {
-    core.info('✅ All resources are already ready')
+
+  // If chartVersion specified, check if at least one HelmRelease has it
+  let hasCorrectVersion = true
+  if (chartVersion && helmReleases!.items.length > 0) {
+    hasCorrectVersion = helmReleases!.items.some((hr) => {
+      const version = getChartVersionFromResource(hr)
+      return isResourceReady(hr) && version === chartVersion
+    })
+  }
+
+  if (notReadyResources.length === 0 && hasCorrectVersion) {
+    if (chartVersion) {
+      core.info(
+        `✅ All resources are ready and at least one HelmRelease has chart version ${chartVersion}`
+      )
+    } else {
+      core.info('✅ All resources are already ready')
+    }
     return allResources.map(createDeploymentStatus)
   }
 
-  core.info(
-    `${notReadyResources.length} resource(s) not ready yet, watching for changes...`
-  )
+  if (chartVersion && !hasCorrectVersion) {
+    core.info(
+      `Waiting for HelmRelease(s) to reconcile to chart version ${chartVersion}...`
+    )
+  } else {
+    core.info(
+      `${notReadyResources.length} resource(s) not ready yet, watching for changes...`
+    )
+  }
 
   // Watch all resources until all are ready or timeout
   const watch = new k8s.Watch(kc)
   const readyResources = new Set(
     allResources.filter(isResourceReady).map((r) => r.metadata.name)
+  )
+  const correctVersionResources = new Set(
+    chartVersion && helmReleases!.items.length > 0
+      ? helmReleases!.items
+          .filter((hr) => {
+            const version = getChartVersionFromResource(hr)
+            return isResourceReady(hr) && version === chartVersion
+          })
+          .map((hr) => hr.metadata.name)
+      : []
   )
   const targetCount = allResources.length
 
@@ -300,9 +372,18 @@ export async function listAndWatchAllResources(
     }
 
     const checkComplete = async () => {
-      if (readyResources.size === targetCount) {
+      const allResourcesReady = readyResources.size === targetCount
+      const versionMatches = !chartVersion || correctVersionResources.size >= 1
+
+      if (allResourcesReady && versionMatches) {
         cleanup()
-        core.info('✅ All resources are ready')
+        if (chartVersion) {
+          core.info(
+            `✅ All resources are ready and at least one HelmRelease has chart version ${chartVersion}`
+          )
+        } else {
+          core.info('✅ All resources are ready')
+        }
         // Fetch final state of all resources
         const finalHelmReleases = (await customApi.listNamespacedCustomObject({
           group: 'helm.toolkit.fluxcd.io',
@@ -337,8 +418,19 @@ export async function listAndWatchAllResources(
           (type, apiObj) => {
             if (type === 'ADDED' || type === 'MODIFIED') {
               const resource = apiObj as HelmRelease
-              if (isResourceReady(resource)) {
+              const ready = isResourceReady(resource)
+
+              if (ready) {
                 readyResources.add(resource.metadata.name)
+
+                // If chartVersion specified, also check if this resource has correct version
+                if (chartVersion) {
+                  const version = getChartVersionFromResource(resource)
+                  if (version === chartVersion) {
+                    correctVersionResources.add(resource.metadata.name)
+                  }
+                }
+
                 checkComplete()
               }
             }
@@ -428,20 +520,45 @@ export async function listAndWatchAllResources(
       const statuses = currentResources.map(createDeploymentStatus)
       const notReady = statuses.filter((s) => s.ready !== 'True')
 
+      // If chartVersion specified, check which HelmReleases have wrong version
+      const wrongVersion: Array<{ name: string; version: string | undefined }> =
+        []
+      if (chartVersion) {
+        currentHelmReleases.items.forEach((hr) => {
+          const version = getChartVersionFromResource(hr)
+          if (isResourceReady(hr) && version !== chartVersion) {
+            wrongVersion.push({ name: hr.metadata.name, version })
+          }
+        })
+      }
+
       core.error(
         `${ANSI_RED}ERROR ❌ Not all flux resources are ready in namespace '${namespace}' within timeout${ANSI_RESET}`
       )
-      core.startGroup('Resources not ready')
-      notReady.forEach((s) => {
-        core.error(`  ${s.type}/${s.name}: ${s.message}`)
-      })
-      core.endGroup()
+      if (notReady.length > 0) {
+        core.startGroup('Resources not ready')
+        notReady.forEach((s) => {
+          core.error(`  ${s.type}/${s.name}: ${s.message}`)
+        })
+        core.endGroup()
+      }
 
-      reject(
-        new Error(
-          `Not all flux resources are ready in namespace '${namespace}' within timeout`
-        )
-      )
+      if (wrongVersion.length > 0) {
+        core.startGroup('Resources with incorrect chart version')
+        wrongVersion.forEach((r) => {
+          core.error(
+            `  HelmRelease/${r.name}: has version ${r.version || 'unknown'}, expected ${chartVersion}`
+          )
+        })
+        core.endGroup()
+      }
+
+      const errorMsg =
+        chartVersion && wrongVersion.length > 0
+          ? `Not all flux resources are ready with correct version in namespace '${namespace}' within timeout`
+          : `Not all flux resources are ready in namespace '${namespace}' within timeout`
+
+      reject(new Error(errorMsg))
     }, timeout)
   })
 }

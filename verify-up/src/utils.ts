@@ -31,6 +31,15 @@ export function getChartVersion(helmRelease: HelmRelease): string | undefined {
   return helmRelease.status?.history?.[0]?.chartVersion
 }
 
+export function getChartVersionFromResource(
+  resource: FluxResource
+): string | undefined {
+  if (resource.kind === 'HelmRelease') {
+    return getChartVersion(resource as HelmRelease)
+  }
+  return undefined
+}
+
 export function parseDuration(duration: string): number {
   const result = parse(duration)
 
