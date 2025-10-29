@@ -94,7 +94,13 @@ async function run(): Promise<void> {
       CommentStatus.Verified,
       {
         namespace,
-        url: url || undefined
+        url: url || undefined,
+        verifiedResources: deploymentStatuses.map((ds) => ({
+          name: ds.name,
+          type: ds.type,
+          ready: ds.ready,
+          message: ds.message
+        }))
       }
     )
 
@@ -126,7 +132,16 @@ async function run(): Promise<void> {
       {
         namespace,
         url: url || undefined,
-        error: errorMessage
+        error: errorMessage,
+        verifiedResources:
+          deploymentStatuses.length > 0
+            ? deploymentStatuses.map((ds) => ({
+                name: ds.name,
+                type: ds.type,
+                ready: ds.ready,
+                message: ds.message
+              }))
+            : undefined
       }
     )
 

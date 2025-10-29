@@ -2,6 +2,13 @@ import * as core from '@actions/core'
 import * as github from '@actions/github'
 import { getPRNumber, getWorkflowRunUrl } from './pr-comments'
 
+export interface VerifiedResource {
+  name: string
+  type: string
+  ready: string
+  message?: string
+}
+
 export interface DeploymentDetails {
   namespace?: string
   tenant?: string
@@ -10,10 +17,11 @@ export interface DeploymentDetails {
   deletedCount?: number
   wasTimeoutTriggered?: boolean
   age?: string
+  verifiedResources?: VerifiedResource[]
+  environment?: string
 }
 
 export enum DeploymentStatus {
-  Deploying = 'deploying',
   Deployed = 'deployed',
   Verified = 'verified',
   Failed = 'failed'
@@ -36,6 +44,7 @@ export class DeploymentCommentManager {
   private readonly commit: string = ''
   private readonly commitUrl: string = ''
   private readonly workflowRunUrl: string = ''
+  private readonly defaultEnvironment: string = ''
 
   constructor(token: string, prNumber?: number | null) {
     if (!token) {
@@ -52,6 +61,8 @@ export class DeploymentCommentManager {
     this.commit = github.context.sha
     this.commitUrl = `https://github.com/${owner}/${repo}/commit/${this.commit}`
     this.workflowRunUrl = getWorkflowRunUrl()
+    this.defaultEnvironment =
+      process.env.GITHUB_ENVIRONMENT || github.context.job || 'preview'
   }
 
   /**
@@ -287,22 +298,34 @@ export class DeploymentCommentManager {
     details: DeploymentDetails
   ): string {
     const statusEmoji = {
-      deploying: '🚀',
-      deployed: '✅',
+      deployed: '🚀',
       verified: '✅',
       failed: '❌'
     }
 
     const statusTitle = {
-      deploying: 'Deployment in progress',
-      deployed: 'Resources created',
-      verified: 'Deployment verified',
+      deployed: 'Deployment created',
+      verified: 'Deployment ready',
       failed: 'Deployment failed'
     }
 
-    let body = `${identifier}\n\n${statusEmoji[status]} **${statusTitle[status]}**\n\n`
+    const env = details.environment || this.defaultEnvironment
 
-    body += `**Details:**\n`
+    const statusDescription = {
+      deployed: `Environment \`${env}\` has been created successfully. Your application deployment is now being verified.`,
+      verified: `Your application has been deployed to environment \`${env}\` and is ready to use.`,
+      failed: `Failed to create or verify your application in environment \`${env}\`.`
+    }
+
+    let body = `${identifier}\n\n`
+    body += `${statusEmoji[status]} **${statusTitle[status]}**\n\n`
+    body += `${statusDescription[status]}\n\n`
+
+    if (status === 'verified' && details.url) {
+      body += `**Application URL:** [${details.url}](${details.url})\n\n`
+    }
+
+    body += `**Deployment details:**\n`
 
     if (details.namespace) {
       body += `- Namespace: \`${details.namespace}\`\n`
@@ -313,15 +336,40 @@ export class DeploymentCommentManager {
     }
 
     body += `- Commit: [\`${this.commit.substring(0, 7)}\`](${this.commitUrl})\n`
-    body += `- Workflow: [View run](${this.workflowRunUrl})\n`
 
-    if (status === 'verified' && details.url) {
-      body += `\n**Application URL:** ${details.url}\n`
+    if (status === 'verified' && details.verifiedResources) {
+      body += `\n**Verified resources:**\n\n`
+      body += `| Resource | Type | Status |\n`
+      body += `|----------|------|--------|\n`
+
+      for (const resource of details.verifiedResources) {
+        const statusIcon = resource.ready === 'True' ? '✅' : '❌'
+        body += `| ${resource.name} | ${resource.type} | ${statusIcon} ${resource.ready} |\n`
+      }
+
+      body += `\n`
     }
 
-    if (status === 'failed' && details.error) {
-      body += `\n**Error:** ${details.error}\n`
+    if (status === 'failed') {
+      if (details.verifiedResources && details.verifiedResources.length > 0) {
+        body += `\n**Resource status:**\n\n`
+        body += `| Resource | Type | Status |\n`
+        body += `|----------|------|--------|\n`
+
+        for (const resource of details.verifiedResources) {
+          const statusIcon = resource.ready === 'True' ? '✅' : '❌'
+          body += `| ${resource.name} | ${resource.type} | ${statusIcon} ${resource.ready} |\n`
+        }
+
+        body += `\n`
+      }
+
+      if (details.error) {
+        body += `\n**Error details:**\n\`\`\`\n${details.error}\n\`\`\`\n`
+      }
     }
+
+    body += `\n_See [workflow run](${this.workflowRunUrl}) for full details._\n`
 
     return body
   }
@@ -333,11 +381,15 @@ export class DeploymentCommentManager {
     identifier: string,
     details: DeploymentDetails
   ): string {
+    const env = details.environment || this.defaultEnvironment
+
     let body = `${identifier}\n\n🗑️ **Environment torn down**\n\n`
 
     if (details.wasTimeoutTriggered) {
-      body += `Your preview environment was automatically destroyed because the configured timeout has passed.\n\n`
-      body += `💡 **Tip:** To keep a preview environment, add the \`keep-preview\` label to your PR.\n\n`
+      body += `Environment \`${env}\` was automatically destroyed because the configured timeout has passed.\n\n`
+      body += `💡 **Tip:** To keep an environment, add the \`keep-preview\` label to your PR.\n\n`
+    } else {
+      body += `Environment \`${env}\` has been manually torn down.\n\n`
     }
 
     body += `**Details:**\n`
@@ -355,7 +407,6 @@ export class DeploymentCommentManager {
     }
 
     body += `- Commit: [\`${this.commit.substring(0, 7)}\`](${this.commitUrl})\n`
-    body += `- Workflow: [View run](${this.workflowRunUrl})\n`
 
     body += `\n_See [workflow run](${this.workflowRunUrl}) for full details._\n`
 
