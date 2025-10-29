@@ -9,7 +9,6 @@ import {
   isProtected,
   sanitizeLabelValue
 } from './utils'
-import { postTeardownComment } from './pr-comments'
 import {
   verifyKubernetesConnectivity,
   findResourcesByLabel,
@@ -27,6 +26,7 @@ import {
   rejectUnauthorised,
   addReaction
 } from '../../shared/src/slash-commands'
+import { DeploymentCommentManager } from '../../shared/src/deployment-comment-manager'
 
 async function run(): Promise<void> {
   const githubToken =
@@ -211,7 +211,16 @@ async function handleTargetedDeletion(
       }
 
       // Post PR comment (manual teardown, no timeout)
-      await postTeardownComment(githubToken, inputs.reference, false)
+      const prNumber = parseInt(inputs.reference, 10)
+      if (!isNaN(prNumber)) {
+        const commentManager = new DeploymentCommentManager(
+          githubToken,
+          prNumber
+        )
+        await commentManager.createTeardownComment({
+          wasTimeoutTriggered: false
+        })
+      }
     }
   }
 
@@ -297,12 +306,18 @@ async function handleBulkDeletion(
 
       // Post PR comment (timeout-triggered deletion)
       if (ciReferenceLabel) {
-        await postTeardownComment(
-          githubToken,
-          ciReferenceLabel,
-          true,
-          ageDisplay
-        )
+        const prNumber = parseInt(ciReferenceLabel, 10)
+        // Only post comment if ci-reference is a valid number, we assume that it is a PR number
+        if (!isNaN(prNumber)) {
+          const commentManager = new DeploymentCommentManager(
+            githubToken,
+            prNumber
+          )
+          await commentManager.createTeardownComment({
+            wasTimeoutTriggered: true,
+            age: ageDisplay
+          })
+        }
       }
     }
 

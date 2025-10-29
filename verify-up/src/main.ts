@@ -1,9 +1,17 @@
 import * as core from '@actions/core'
 import { verifyKubernetesConnectivity } from '../../shared/src/k8s-connectivity'
-import { verifySpecificResource, verifyAllResources } from './k8s-verification'
+import {
+  verifySpecificResource,
+  verifyAllResources,
+  discoverURL
+} from './k8s-verification'
 import { generateSummary } from './summary'
 import { DeploymentStatus } from './types'
 import { parseDuration } from './utils'
+import {
+  DeploymentCommentManager,
+  DeploymentStatus as CommentStatus
+} from '../../shared/src/deployment-comment-manager'
 
 async function run(): Promise<void> {
   let deploymentStatuses: DeploymentStatus[] = []
@@ -13,6 +21,8 @@ async function run(): Promise<void> {
   let chartVersion = ''
   let timeout = ''
   let podSelector = ''
+  let url = ''
+  let githubToken = ''
 
   try {
     // Read inputs
@@ -23,6 +33,9 @@ async function run(): Promise<void> {
     timeout = core.getInput('timeout') || '3m'
     podSelector = core.getInput('pod-selector')
     const initialWaitInput = core.getInput('initial-wait') || '0'
+    const ingressSelector = core.getInput('ingress-selector')
+    githubToken =
+      core.getInput('github-token') || process.env.GITHUB_TOKEN || ''
 
     // Initial wait
     const initialWait = parseDuration(initialWaitInput)
@@ -60,6 +73,10 @@ async function run(): Promise<void> {
       )
     }
 
+    // Discover application URL
+    url = await discoverURL(kc, namespace, ingressSelector)
+    core.setOutput('url', url)
+
     // Generate summary
     await generateSummary(true, deploymentStatuses, {
       kubernetesContext,
@@ -67,8 +84,19 @@ async function run(): Promise<void> {
       fluxResource: fluxResource || undefined,
       chartVersion: chartVersion || undefined,
       timeout,
-      podSelector: podSelector || undefined
+      podSelector: podSelector || undefined,
+      url: url || undefined
     })
+
+    // Post PR comment if in PR context and token provided
+    const commentManager = new DeploymentCommentManager(githubToken)
+    await commentManager.createOrUpdateDeploymentComment(
+      CommentStatus.Verified,
+      {
+        namespace,
+        url: url || undefined
+      }
+    )
 
     core.info('✅ Deployment verification successful')
   } catch (error) {
@@ -85,9 +113,21 @@ async function run(): Promise<void> {
         fluxResource: fluxResource || undefined,
         chartVersion: chartVersion || undefined,
         timeout,
-        podSelector: podSelector || undefined
+        podSelector: podSelector || undefined,
+        url: url || undefined
       },
       errorMessage
+    )
+
+    // Post failure PR comment
+    const failureCommentManager = new DeploymentCommentManager(githubToken)
+    await failureCommentManager.createOrUpdateDeploymentComment(
+      CommentStatus.Failed,
+      {
+        namespace,
+        url: url || undefined,
+        error: errorMessage
+      }
     )
 
     core.setFailed(errorMessage)

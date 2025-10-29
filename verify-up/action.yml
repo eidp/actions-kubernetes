@@ -47,6 +47,18 @@ inputs:
     description: 'Time to wait before starting verification to allow resources to reconcile. Set to 0 or 0s to disable. Example values: 30s, 1m, 90s'
     required: false
     default: '0'
+  ingress-selector:
+    description: 'Label selector to identify the ingress resource for URL discovery (e.g. app=my-app). If multiple ingresses exist without a selector, a warning will be logged.'
+    required: false
+    default: ''
+  github-token:
+    description: 'GitHub token for posting PR comments. Only posts comments if token is provided and running in PR context. Required permissions: contents:read, pull-requests:write, issues:write.'
+    required: false
+    default: ''
+
+outputs:
+  url:
+    description: 'The discovered application URL from the ingress resource (empty if not found).'
 
 runs:
   using: 'composite'
@@ -68,6 +80,8 @@ runs:
         INPUT_POD-SELECTOR: ${{ inputs.pod-selector }}
         INPUT_IMPORTANT-WORKLOADS: ${{ inputs.important-workloads }}
         INPUT_INITIAL-WAIT: ${{ inputs.initial-wait }}
+        INPUT_INGRESS-SELECTOR: ${{ inputs.ingress-selector }}
+        INPUT_GITHUB-TOKEN: ${{ inputs.github-token }}
 
     - name: Kubernetes namespace report
       uses: jupyterhub/action-k8s-namespace-report@ccc0e3c37860245f3906e3857df01b0a53f9c3f8 # v1.2.0

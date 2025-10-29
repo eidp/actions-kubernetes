@@ -39,18 +39,16 @@ To prevent multiple preview deployments for the same PR, it is recommended to ad
 |`ci-prefix-length`   |The number of characters from the reference to include in the CI prefix. Should be sufficient to ensure uniqueness while keeping resource names within Kubernetes limits. Can be max 24 characters.                                                |No      |`16`   |
 |`chart-version`      |Optional chart version override.                                                                                                                                                                                                                   |No      |``     |
 |`timeout`            |The time to wait for the deployment to be completed successfully.                                                                                                                                                                                  |No      |`5m`   |
-|`ingress-selector`   |Label selector to identify the ingress resource for preview URL discovery (e.g. app=my-app). Required if multiple ingresses exist in the namespace.                                                                                                |No      |``     |
 |`github-token`       |GitHub token for authentication. Uses GITHUB_TOKEN if not provided. Required permissions: contents:read, pull-requests:write, issues:write.                                                                                                        |No      |``     |
 
 ## 📤 Outputs
 
-|Name                  |Description                                                 |
-|----------------------|------------------------------------------------------------|
-|`oci-repository-name` |The name of the created OCIRepository resource.             |
-|`kustomization-name`  |The name of the created Kustomization resource.             |
-|`namespace`           |The target namespace for the deployment.                    |
-|`ci-prefix`           |The generated CI prefix used for resource naming.           |
-|`preview-url`         |The discovered preview deployment URL (empty if not found). |
+|Name                  |Description                                       |
+|----------------------|--------------------------------------------------|
+|`oci-repository-name` |The name of the created OCIRepository resource.   |
+|`kustomization-name`  |The name of the created Kustomization resource.   |
+|`namespace`           |The target namespace for the deployment.          |
+|`ci-prefix`           |The generated CI prefix used for resource naming. |
 
 ## 🚀 Usage
 
@@ -91,10 +89,10 @@ jobs:
       id-token: write
     environment:
       name: pr-${{ github.event.number || github.event.issue.number }}
-      url: ${{ steps.deploy-preview.outputs.preview-url }}
+      url: ${{ steps.verify-preview.outputs.url }}
 
     steps:
-      # When triggered by slash commands (issue_comment), we need to checkout the PR branch
+      # When triggered by slash commands (issue_comment), we need to check out the PR branch
       # because issue_comment events run from the default branch (security feature)
       - name: Get PR branch
         if: github.event_name == 'issue_comment'
@@ -138,6 +136,7 @@ jobs:
           timeout: 10m
 
       - name: Verify preview deployment
+        id: verify-preview
         if: github.event.action != 'closed'
         uses: eidp/actions-kubernetes/verify-up@v0
         with:

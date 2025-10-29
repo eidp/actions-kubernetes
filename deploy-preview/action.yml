@@ -60,10 +60,6 @@ inputs:
     description: 'The time to wait for the deployment to be completed successfully.'
     required: false
     default: '5m'
-  ingress-selector:
-    description: 'Label selector to identify the ingress resource for preview URL discovery (e.g. app=my-app). Required if multiple ingresses exist in the namespace.'
-    required: false
-    default: ''
   github-token:
     description: 'GitHub token for authentication. Uses GITHUB_TOKEN if not provided. Required permissions: contents:read, pull-requests:write, issues:write.'
     required: false
@@ -78,8 +74,6 @@ outputs:
     description: 'The target namespace for the deployment.'
   ci-prefix:
     description: 'The generated CI prefix used for resource naming.'
-  preview-url:
-    description: 'The discovered preview deployment URL (empty if not found).'
 
 runs:
   using: 'node20'

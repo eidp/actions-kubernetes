@@ -7,7 +7,6 @@ export async function generateDeploymentSummary(data: {
   ociRepoName: string
   kustomizationName: string
   gitBranch: string
-  previewUrl: string
 }): Promise<void> {
   core.startGroup('Generating GitHub summary')
 
@@ -26,11 +25,6 @@ export async function generateDeploymentSummary(data: {
       [{ data: 'Kustomization' }, { data: data.kustomizationName }],
       [{ data: 'Git branch' }, { data: data.gitBranch }]
     ])
-    .addRaw(
-      data.previewUrl
-        ? `\n### 🌐 Preview URL\n\n**[${data.previewUrl}](${data.previewUrl})**\n`
-        : ''
-    )
     .addRaw(
       `\n---\n*Deployment timestamp: ${new Date().toISOString().replace('T', ' ').substring(0, 19)} UTC*`
     )

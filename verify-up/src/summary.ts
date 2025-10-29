@@ -8,6 +8,7 @@ export interface SummaryInputs {
   chartVersion?: string
   timeout: string
   podSelector?: string
+  url?: string
 }
 
 export async function generateSummary(
@@ -59,6 +60,13 @@ export async function generateSummary(
   detailsList.forEach((item) => {
     summary.addRaw(`- ${item[0]}: ${item[1]}\n`)
   })
+
+  // Add application URL if discovered
+  if (inputs.url) {
+    summary.addEOL()
+    summary.addHeading('Application URL', 3)
+    summary.addRaw(`🔗 [${inputs.url}](${inputs.url})\n`)
+  }
 
   // Add deployment status table if we have statuses
   if (deploymentStatuses.length > 0) {

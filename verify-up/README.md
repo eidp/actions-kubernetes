@@ -19,10 +19,14 @@ Checkout the [Create Kubernetes context](./create-context) action to create and 
 |`pod-selector`        |For namespaces containing multiple deployments, you can specify a pod selector to ensure that only pods belonging to this deployment are evaluated for successful deployment. The pod selector uses label selectors, such as app=my-app. For advanced usage, refer to the Kubernetes documentation: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#list-and-watch-filtering |No      |``     |
 |`important-workloads` |Space-separated list of resources for which logs should be displayed during the verify step, such as `deploy/my-server` or `job/my-job`.                                                                                                                                                                                                                                                               |No      |``     |
 |`initial-wait`        |Time to wait before starting verification to allow resources to reconcile. Set to 0 or 0s to disable. Example values: 30s, 1m, 90s                                                                                                                                                                                                                                                                     |No      |`0`    |
+|`ingress-selector`    |Label selector to identify the ingress resource for URL discovery (e.g. app=my-app). If multiple ingresses exist without a selector, a warning will be logged.                                                                                                                                                                                                                                         |No      |``     |
+|`github-token`        |GitHub token for posting PR comments. Only posts comments if token is provided and running in PR context. Required permissions: contents:read, pull-requests:write, issues:write.                                                                                                                                                                                                                      |No      |``     |
 
 ## 📤 Outputs
 
-_None_
+|Name  |Description                                                                    |
+|------|-------------------------------------------------------------------------------|
+|`url` |The discovered application URL from the ingress resource (empty if not found). |
 
 ## 🚀 Usage
 

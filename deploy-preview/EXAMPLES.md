@@ -27,10 +27,10 @@ jobs:
       id-token: write
     environment:
       name: pr-${{ github.event.number || github.event.issue.number }}
-      url: ${{ steps.deploy-preview.outputs.preview-url }}
+      url: ${{ steps.verify-preview.outputs.url }}
 
     steps:
-      # When triggered by slash commands (issue_comment), we need to checkout the PR branch
+      # When triggered by slash commands (issue_comment), we need to check out the PR branch
       # because issue_comment events run from the default branch (security feature)
       - name: Get PR branch
         if: github.event_name == 'issue_comment'
@@ -74,6 +74,7 @@ jobs:
           timeout: 10m
 
       - name: Verify preview deployment
+        id: verify-preview
         if: github.event.action != 'closed'
         uses: eidp/actions-kubernetes/verify-up@v0
         with:
