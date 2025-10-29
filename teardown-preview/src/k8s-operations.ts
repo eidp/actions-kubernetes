@@ -1,6 +1,7 @@
 import * as core from '@actions/core'
 import * as k8s from '@kubernetes/client-node'
 import { Kustomization, OCIRepository } from './types'
+import { Labels } from '../../shared/src/constants'
 
 export async function verifyKubernetesConnectivity(
   kubernetesContext: string
@@ -206,7 +207,7 @@ export async function deleteMatchingOCIRepository(
       version: 'v1',
       namespace: 'infra-fluxcd',
       plural: 'ocirepositories',
-      labelSelector: `eidp.com/preview-deployment=true,eidp.com/ci-reference=${ciReferenceLabel}`
+      labelSelector: `${Labels.PREVIEW_DEPLOYMENT}=true,${Labels.CI_REFERENCE}=${ciReferenceLabel}`
     })) as { items: OCIRepository[] }
 
     for (const oci of response.items) {

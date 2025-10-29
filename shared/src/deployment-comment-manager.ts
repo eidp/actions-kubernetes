@@ -18,7 +18,7 @@ export interface DeploymentDetails {
   wasTimeoutTriggered?: boolean
   age?: string
   verifiedResources?: VerifiedResource[]
-  environment?: string
+  environment: string
 }
 
 export enum DeploymentStatus {
@@ -44,7 +44,6 @@ export class DeploymentCommentManager {
   private readonly commit: string = ''
   private readonly commitUrl: string = ''
   private readonly workflowRunUrl: string = ''
-  private readonly defaultEnvironment: string = ''
 
   constructor(token: string, prNumber?: number | null) {
     if (!token) {
@@ -61,8 +60,6 @@ export class DeploymentCommentManager {
     this.commit = github.context.sha
     this.commitUrl = `https://github.com/${owner}/${repo}/commit/${this.commit}`
     this.workflowRunUrl = getWorkflowRunUrl()
-    this.defaultEnvironment =
-      process.env.GITHUB_ENVIRONMENT || github.context.job || 'preview'
   }
 
   /**
@@ -309,12 +306,10 @@ export class DeploymentCommentManager {
       failed: 'Deployment failed'
     }
 
-    const env = details.environment || this.defaultEnvironment
-
     const statusDescription = {
-      deployed: `Environment \`${env}\` has been created successfully. Your application deployment is now being verified.`,
-      verified: `Your application has been deployed to environment \`${env}\` and is ready to use.`,
-      failed: `Failed to create or verify your application in environment \`${env}\`.`
+      deployed: `Environment \`${details.environment}\` has been created successfully. Your application is now being deployed.`,
+      verified: `Your application has been deployed to environment \`${details.environment}\` and is ready to use.`,
+      failed: `Failed to create or verify your application in environment \`${details.environment}\`.`
     }
 
     let body = `${identifier}\n\n`
@@ -381,15 +376,13 @@ export class DeploymentCommentManager {
     identifier: string,
     details: DeploymentDetails
   ): string {
-    const env = details.environment || this.defaultEnvironment
-
     let body = `${identifier}\n\n🗑️ **Environment torn down**\n\n`
 
     if (details.wasTimeoutTriggered) {
-      body += `Environment \`${env}\` was automatically destroyed because the configured timeout has passed.\n\n`
+      body += `Environment \`${details.environment}\` was automatically destroyed because the configured timeout has passed.\n\n`
       body += `💡 **Tip:** To keep an environment, add the \`keep-preview\` label to your PR.\n\n`
     } else {
-      body += `Environment \`${env}\` has been manually torn down.\n\n`
+      body += `Environment \`${details.environment}\` has been manually torn down.\n\n`
     }
 
     body += `**Details:**\n`

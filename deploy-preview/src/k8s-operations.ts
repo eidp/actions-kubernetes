@@ -3,6 +3,7 @@ import * as github from '@actions/github'
 import * as k8s from '@kubernetes/client-node'
 import { Kustomization, OCIRepository } from './types'
 import { sanitizeLabelValue } from './utils'
+import { Labels } from '../../shared/src/constants'
 
 export async function createOrUpdateCustomObject(
   customApi: k8s.CustomObjectsApi,
@@ -72,6 +73,7 @@ export async function createOCIRepository(
     name: string
     tenantName: string
     reference: string
+    environment: string
   }
 ): Promise<void> {
   const customApi = kc.makeApiClient(k8s.CustomObjectsApi)
@@ -79,6 +81,7 @@ export async function createOCIRepository(
   const repositoryLabel = sanitizeLabelValue(
     `${github.context.repo.owner}_${github.context.repo.repo}`
   )
+  const environmentLabel = sanitizeLabelValue(params.environment)
 
   core.info(`Creating OCIRepository: ${params.name}`)
 
@@ -89,11 +92,12 @@ export async function createOCIRepository(
       name: params.name,
       namespace: 'infra-fluxcd',
       labels: {
-        'app.kubernetes.io/managed-by': 'github-actions',
-        'app.kubernetes.io/created-by': 'deploy-preview',
-        'eidp.com/preview-deployment': 'true',
-        'eidp.com/ci-reference': ciReferenceLabel,
-        'eidp.com/repository': repositoryLabel
+        [Labels.MANAGED_BY]: 'github-actions',
+        [Labels.CREATED_BY]: 'deploy-preview',
+        [Labels.PREVIEW_DEPLOYMENT]: 'true',
+        [Labels.CI_REFERENCE]: ciReferenceLabel,
+        [Labels.REPOSITORY]: repositoryLabel,
+        [Labels.ENVIRONMENT]: environmentLabel
       }
     },
     spec: {
@@ -139,6 +143,7 @@ export async function createKustomization(
   const repositoryLabel = sanitizeLabelValue(
     `${github.context.repo.owner}_${github.context.repo.repo}`
   )
+  const environmentLabel = sanitizeLabelValue(params.environment)
 
   const helmReleaseName = `${params.ciPrefix}${params.tenantName}`
   const releaseName = `${params.ciPrefix}${params.tenantName}-tenant`
@@ -168,11 +173,12 @@ export async function createKustomization(
       name: params.name,
       namespace: 'infra-fluxcd',
       labels: {
-        'app.kubernetes.io/managed-by': 'github-actions',
-        'app.kubernetes.io/created-by': 'deploy-preview',
-        'eidp.com/preview-deployment': 'true',
-        'eidp.com/ci-reference': ciReferenceLabel,
-        'eidp.com/repository': repositoryLabel
+        [Labels.MANAGED_BY]: 'github-actions',
+        [Labels.CREATED_BY]: 'deploy-preview',
+        [Labels.PREVIEW_DEPLOYMENT]: 'true',
+        [Labels.CI_REFERENCE]: ciReferenceLabel,
+        [Labels.REPOSITORY]: repositoryLabel,
+        [Labels.ENVIRONMENT]: environmentLabel
       }
     },
     spec: {

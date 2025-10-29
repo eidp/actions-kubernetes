@@ -78,6 +78,7 @@ jobs:
         if: github.event.action != 'closed'
         uses: eidp/actions-kubernetes/verify-up@v0
         with:
+          environment: 'pr-${{ github.event.number || github.event.issue.number }}'
           kubernetes-context: ${{ steps.create-context.outputs.context-name }}
           namespace: ${{ steps.deploy-preview.outputs.namespace }}
           chart-version: '${{ steps.generate.outputs.version }}'

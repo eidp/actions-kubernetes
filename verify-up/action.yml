@@ -9,6 +9,10 @@ description: |
 author: EIDP
 
 inputs:
+  environment:
+    description: 'The github environment used to deploy to (e.g. `pr-\$\{\{ github.event.pr \}\}`).'
+    required: true
+    default: ''
   kubernetes-context:
     description: 'The name of the Kubernetes context to use for verification.'
     required: true
@@ -72,6 +76,7 @@ runs:
       shell: bash
       run: node ${{ github.action_path }}/dist/index.js
       env:
+        INPUT_ENVIRONMENT: ${{ inputs.environment }}
         INPUT_KUBERNETES-CONTEXT: ${{ inputs.kubernetes-context }}
         INPUT_NAMESPACE: ${{ inputs.namespace }}
         INPUT_FLUX-RESOURCE: ${{ inputs.flux-resource }}

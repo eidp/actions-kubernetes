@@ -19,6 +19,7 @@ async function run(): Promise<void> {
   let namespace = ''
   let ciPrefix = ''
   let gitBranch = ''
+  const environment = ''
   const githubToken =
     core.getInput('github-token') || process.env.GITHUB_TOKEN || ''
   let slashCommandId: number | null = null
@@ -112,7 +113,8 @@ async function run(): Promise<void> {
     await createOCIRepository(kc, {
       name: ociRepoName,
       tenantName,
-      reference
+      reference,
+      environment
     })
 
     gitBranch = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || ''
@@ -149,7 +151,8 @@ async function run(): Promise<void> {
       DeploymentStatus.Deployed,
       {
         namespace,
-        tenant: tenantName
+        tenant: tenantName,
+        environment
       }
     )
 
@@ -168,7 +171,8 @@ async function run(): Promise<void> {
       {
         namespace,
         tenant: tenantName,
-        error: errorMessage
+        error: errorMessage,
+        environment
       }
     )
 

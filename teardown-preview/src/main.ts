@@ -27,6 +27,7 @@ import {
   addReaction
 } from '../../shared/src/slash-commands'
 import { DeploymentCommentManager } from '../../shared/src/deployment-comment-manager'
+import { Labels } from '../../shared/src/constants'
 
 async function run(): Promise<void> {
   const githubToken =
@@ -143,7 +144,7 @@ async function handleTargetedDeletion(
     `Searching for resources with ci-reference label: ${ciReferenceLabel}`
   )
 
-  const labelSelector = `eidp.com/preview-deployment=true,eidp.com/ci-reference=${ciReferenceLabel}`
+  const labelSelector = `${Labels.PREVIEW_DEPLOYMENT}=true,${Labels.CI_REFERENCE}=${ciReferenceLabel}`
 
   const { kustomizations, ociRepositories } = await findResourcesByLabel(
     kc,
@@ -166,6 +167,10 @@ async function handleTargetedDeletion(
     core.info(
       `Found preview deployment: ${kustomizationCount} Kustomization(s), ${ociRepoCount} OCIRepository(ies)`
     )
+
+    // Extract environment from the first kustomization's labels
+    const environment =
+      kustomizations[0]?.metadata?.labels?.[Labels.ENVIRONMENT] || 'preview'
 
     if (inputs.dryRun) {
       core.info('ℹ️ DRY RUN: Would delete the following resources:')
@@ -218,7 +223,8 @@ async function handleTargetedDeletion(
           prNumber
         )
         await commentManager.createTeardownComment({
-          wasTimeoutTriggered: false
+          wasTimeoutTriggered: false,
+          environment
         })
       }
     }
@@ -242,7 +248,7 @@ async function handleBulkDeletion(
 
   const kustomizations = await listKustomizations(
     kc,
-    `eidp.com/preview-deployment=true,eidp.com/repository=${repositoryLabel}`
+    `${Labels.PREVIEW_DEPLOYMENT}=true,${Labels.REPOSITORY}=${repositoryLabel}`
   )
 
   const totalCount = kustomizations.length
@@ -262,7 +268,8 @@ async function handleBulkDeletion(
 
   for (const kust of kustomizations) {
     const name = kust.metadata.name
-    const ciReferenceLabel = kust.metadata.labels['eidp.com/ci-reference'] || ''
+    const ciReferenceLabel = kust.metadata.labels[Labels.CI_REFERENCE] || ''
+    const environment = kust.metadata.labels[Labels.ENVIRONMENT] || 'preview'
     const createdTimestamp = kust.metadata.creationTimestamp
 
     const ageSeconds = calculateAge(createdTimestamp)
@@ -315,7 +322,8 @@ async function handleBulkDeletion(
           )
           await commentManager.createTeardownComment({
             wasTimeoutTriggered: true,
-            age: ageDisplay
+            age: ageDisplay,
+            environment
           })
         }
       }

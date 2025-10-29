@@ -23,9 +23,11 @@ async function run(): Promise<void> {
   let podSelector = ''
   let url = ''
   let githubToken = ''
+  let environment = ''
 
   try {
     // Read inputs
+    environment = core.getInput('environment', { required: true })
     kubernetesContext = core.getInput('kubernetes-context', { required: true })
     namespace = core.getInput('namespace', { required: true })
     fluxResource = core.getInput('flux-resource')
@@ -95,6 +97,7 @@ async function run(): Promise<void> {
       {
         namespace,
         url: url || undefined,
+        environment,
         verifiedResources: deploymentStatuses.map((ds) => ({
           name: ds.name,
           type: ds.type,
@@ -133,6 +136,7 @@ async function run(): Promise<void> {
         namespace,
         url: url || undefined,
         error: errorMessage,
+        environment,
         verifiedResources:
           deploymentStatuses.length > 0
             ? deploymentStatuses.map((ds) => ({

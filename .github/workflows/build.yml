@@ -130,6 +130,7 @@ jobs:
       uses: ./verify-up
       continue-on-error: true
       with:
+        environment: development
         kubernetes-context: ${{ steps.create-context.outputs.context-name }}
         namespace: non-existing-namespace
         timeout: 30s
@@ -146,6 +147,7 @@ jobs:
       uses: ./verify-up
       continue-on-error: true
       with:
+        environment: development
         kubernetes-context: ${{ steps.create-context.outputs.context-name }}
         namespace: apps-actions-kubernetes
         flux-resource: helmrelease/non-existing-release
@@ -162,6 +164,7 @@ jobs:
       id: verify-up-with-resource
       uses: ./verify-up
       with:
+        environment: development
         kubernetes-context: ${{ steps.create-context.outputs.context-name }}
         namespace: apps-actions-kubernetes
         flux-resource: helmrelease/echo-server-release
@@ -177,6 +180,7 @@ jobs:
       id: verify-up-no-flux-resource
       uses: ./verify-up
       with:
+        environment: development
         kubernetes-context: ${{ steps.create-context.outputs.context-name }}
         namespace: apps-actions-kubernetes
 
