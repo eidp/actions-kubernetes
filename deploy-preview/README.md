@@ -73,10 +73,6 @@ on:
   issue_comment:
     types: [created]
 
-concurrency:
-  group: pr-${{ github.event.number || github.event.issue.number }}
-  cancel-in-progress: false
-
 jobs:
   preview:
     # Only run on PR events or PR comments (not issue comments)
@@ -90,6 +86,9 @@ jobs:
     environment:
       name: pr-${{ github.event.number || github.event.issue.number }}
       url: ${{ steps.verify-preview.outputs.url }}
+    concurrency:
+      group: pr-${{ github.event.number || github.event.issue.number }}
+      cancel-in-progress: false
 
     steps:
       # When triggered by slash commands (issue_comment), we need to check out the PR branch
@@ -147,7 +146,11 @@ jobs:
           timeout: 10m
 
       - name: Teardown preview
-        if: github.event.action == 'closed' || github.event_name == 'issue_comment'
+        if: |
+          github.event.action == 'closed' ||
+          github.event_name == 'issue_comment' ||
+          contains(github.event.pull_request.labels.*.name, 'dependencies')
+
         uses: eidp/actions-kubernetes/teardown-preview@v0
         with:
           kubernetes-context: ${{ steps.create-context.outputs.context-name }}
