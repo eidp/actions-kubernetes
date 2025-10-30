@@ -82,6 +82,7 @@ jobs:
         environment: 'pr-${{ github.event.number || github.event.issue.number || github.ref_name }}'
         kubernetes-context: ${{ steps.create-context.outputs.context-name }}
         namespace: ${{ steps.deploy-preview.outputs.namespace }}
+        flux-resource: 'helmrelease/echo-server-release'
         chart-version: '0.4.0'
         github-token: ${{ github.token }}
 

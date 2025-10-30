@@ -1,10 +1,6 @@
 import * as core from '@actions/core'
 import * as k8s from '@kubernetes/client-node'
-import {
-  parseFluxResourceInput,
-  waitForResourceReady,
-  listAndWatchAllResources
-} from './flux-resources'
+import { parseFluxResourceInput, waitForResourceReady } from './flux-resources'
 import { DeploymentStatus } from './types'
 import { parseDuration } from './utils'
 
@@ -33,30 +29,6 @@ export async function verifySpecificResource(
 
   core.endGroup()
   return [status]
-}
-
-export async function verifyAllResources(
-  kc: k8s.KubeConfig,
-  namespace: string,
-  chartVersion: string | undefined,
-  timeoutStr: string
-): Promise<DeploymentStatus[]> {
-  const timeout = parseDuration(timeoutStr)
-
-  core.startGroup(
-    `Verifying whether flux resources in namespace '${namespace}'`
-  )
-
-  // Wait for all resources to be ready (and have correct version if specified)
-  const statuses = await listAndWatchAllResources(
-    kc,
-    namespace,
-    timeout,
-    chartVersion
-  )
-
-  core.endGroup()
-  return statuses
 }
 
 export async function discoverURL(

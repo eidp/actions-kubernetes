@@ -22,11 +22,11 @@ inputs:
     required: true
     default: ''
   flux-resource:
-    description: 'The Flux resource path of the deployment to verify (e.g. helmreleases/my-release or kustomization/my-release). If not provided, the action will attempt to verify all deployments in the specified namespace.a'
-    required: false
+    description: 'The Flux resource path of the deployment to verify (e.g. helmreleases/my-release or kustomization/my-release).'
+    required: true
     default: ''
   chart-version:
-    description: 'Specify the chart-version input in case you want to verify if a specific version of a Helm chart is up. When used with `flux-resource`, verifies that specific resource has the version. When used without `flux-resource`, verifies at least one HelmRelease in the namespace has the version.'
+    description: 'Specify the chart-version input in case you want to verify if a specific version of a Helm chart is deployed.'
     required: false
     default: ''
   timeout:

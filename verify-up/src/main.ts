@@ -1,10 +1,6 @@
 import * as core from '@actions/core'
 import { verifyKubernetesConnectivity } from '../../shared/src/k8s-connectivity'
-import {
-  verifySpecificResource,
-  verifyAllResources,
-  discoverURL
-} from './k8s-verification'
+import { verifySpecificResource, discoverURL } from './k8s-verification'
 import { generateSummary } from './summary'
 import { DeploymentStatus } from './types'
 import {
@@ -29,7 +25,7 @@ async function run(): Promise<void> {
     environment = core.getInput('environment', { required: true })
     kubernetesContext = core.getInput('kubernetes-context', { required: true })
     namespace = core.getInput('namespace', { required: true })
-    fluxResource = core.getInput('flux-resource')
+    fluxResource = core.getInput('flux-resource', { required: true })
     chartVersion = core.getInput('chart-version')
     timeout = core.getInput('timeout') || '3m'
     podSelector = core.getInput('pod-selector')
@@ -43,23 +39,14 @@ async function run(): Promise<void> {
       checkPermissions: true
     })
 
-    // Verify deployment (specific or all)
-    if (fluxResource) {
-      deploymentStatuses = await verifySpecificResource(
-        kc,
-        namespace,
-        fluxResource,
-        chartVersion || undefined,
-        timeout
-      )
-    } else {
-      deploymentStatuses = await verifyAllResources(
-        kc,
-        namespace,
-        chartVersion || undefined,
-        timeout
-      )
-    }
+    // Verify deployment
+    deploymentStatuses = await verifySpecificResource(
+      kc,
+      namespace,
+      fluxResource,
+      chartVersion || undefined,
+      timeout
+    )
 
     // Discover application URL
     url = await discoverURL(kc, namespace, ingressSelector)
