@@ -24,12 +24,8 @@ export interface DeploymentDetails {
 export enum DeploymentStatus {
   Deployed = 'deployed',
   Verified = 'verified',
-  Failed = 'failed'
-}
-
-enum CommentType {
-  Deployment = 'deployment',
-  Teardown = 'teardown'
+  Failed = 'failed',
+  TornDown = 'torndown'
 }
 
 /**
@@ -86,15 +82,11 @@ export class DeploymentCommentManager {
       }
 
       // Find existing comment for this commit
-      const existingComment = await this.findComment(CommentType.Deployment)
+      const existingComment = await this.findComment()
 
       // Generate comment body
-      const identifier = this.getCommentIdentifier(CommentType.Deployment)
-      const body = this.generateDeploymentCommentBody(
-        identifier,
-        status,
-        details
-      )
+      const identifier = this.getCommentIdentifier()
+      const body = this.generateCommentBody(identifier, status, details)
 
       if (existingComment) {
         // Update existing comment
@@ -127,31 +119,40 @@ export class DeploymentCommentManager {
   }
 
   /**
-   * Create teardown comment (minimizes deployment comment first)
+   * Create or update teardown comment
    */
-  async createTeardownComment(details: DeploymentDetails): Promise<void> {
+  async createOrUpdateTeardownComment(
+    details: DeploymentDetails
+  ): Promise<void> {
     if (!this.octokit || !this.prNumber) {
       core.debug('Skipping PR comment - no token or no PR context')
       return
     }
 
     try {
-      // Find and minimize the deployment comment for this commit
-      const deploymentComment = await this.findComment(CommentType.Deployment)
+      // Minimize all previous comments (from other commits)
+      const previousComments = await this.findAllPreviousComments()
 
-      if (deploymentComment) {
-        await this.minimizeComments([deploymentComment.node_id])
+      if (previousComments.length > 0) {
+        core.info(
+          `Minimizing ${previousComments.length} previous comment(s) for PR #${this.prNumber}`
+        )
+        await this.minimizeComments(previousComments.map((c) => c.node_id))
       }
 
-      // Find existing teardown comment for this commit
-      const existingComment = await this.findComment(CommentType.Teardown)
+      // Find existing comment for this commit
+      const existingComment = await this.findComment()
 
       // Generate comment body
-      const identifier = this.getCommentIdentifier(CommentType.Teardown)
-      const body = this.generateTeardownCommentBody(identifier, details)
+      const identifier = this.getCommentIdentifier()
+      const body = this.generateCommentBody(
+        identifier,
+        DeploymentStatus.TornDown,
+        details
+      )
 
       if (existingComment) {
-        // Update existing teardown comment
+        // Update existing comment
         await this.octokit.rest.issues.updateComment({
           owner: this.owner,
           repo: this.repo,
@@ -159,10 +160,10 @@ export class DeploymentCommentManager {
           body
         })
         core.info(
-          `Updated teardown comment for PR #${this.prNumber}, commit ${this.commit.substring(0, 7)}`
+          `Updated comment to show teardown for PR #${this.prNumber}, commit ${this.commit.substring(0, 7)}`
         )
       } else {
-        // Create new teardown comment
+        // Create new comment
         await this.octokit.rest.issues.createComment({
           owner: this.owner,
           repo: this.repo,
@@ -183,21 +184,21 @@ export class DeploymentCommentManager {
   /**
    * Generate HTML comment identifier for finding/updating comments
    */
-  private getCommentIdentifier(type: CommentType): string {
-    return `<!-- actions-kubernetes-${type}: pr=${this.prNumber}, workflow=${this.workflowName}, commit=${this.commit} -->`
+  private getCommentIdentifier(): string {
+    return `<!-- actions-kubernetes: pr=${this.prNumber}, workflow=${this.workflowName}, commit=${this.commit} -->`
   }
 
   /**
-   * Find existing comment of specified type for this commit
+   * Find existing comment for this commit
    */
-  private async findComment(type: CommentType): Promise<{
+  private async findComment(): Promise<{
     id: number
     node_id: string
     body?: string
   } | null> {
     if (!this.octokit || !this.prNumber) return null
 
-    const identifier = this.getCommentIdentifier(type)
+    const identifier = this.getCommentIdentifier()
 
     const comments = await this.octokit.paginate(
       this.octokit.rest.issues.listComments,
@@ -214,7 +215,7 @@ export class DeploymentCommentManager {
   }
 
   /**
-   * Find all previous deployment and teardown comments for this PR+workflow (excluding current commit)
+   * Find all previous comments for this PR+workflow (excluding current commit)
    */
   private async findAllPreviousComments(): Promise<
     Array<{ id: number; node_id: string; body?: string }>
@@ -230,30 +231,21 @@ export class DeploymentCommentManager {
       }
     )
 
-    const deploymentPattern = `<!-- actions-kubernetes-${CommentType.Deployment}: pr=${this.prNumber}, workflow=${this.workflowName}, commit=`
-    const teardownPattern = `<!-- actions-kubernetes-${CommentType.Teardown}: pr=${this.prNumber}, workflow=${this.workflowName}, commit=`
+    const commentPattern = `<!-- actions-kubernetes: pr=${this.prNumber}, workflow=${this.workflowName}, commit=`
+    const currentIdentifier = this.getCommentIdentifier()
 
     return comments.filter((comment) => {
       const body = comment.body || ''
 
-      // Check if it's either a deployment or teardown comment for this PR+workflow
-      const isRelevantComment =
-        body.startsWith(deploymentPattern) || body.startsWith(teardownPattern)
+      // Check if it's a comment for this PR+workflow
+      const isRelevantComment = body.startsWith(commentPattern)
 
       if (!isRelevantComment) {
         return false
       }
 
       // Exclude comments from the current commit
-      const currentDeploymentId = this.getCommentIdentifier(
-        CommentType.Deployment
-      )
-      const currentTeardownId = this.getCommentIdentifier(CommentType.Teardown)
-
-      return (
-        !body.startsWith(currentDeploymentId) &&
-        !body.startsWith(currentTeardownId)
-      )
+      return !body.startsWith(currentIdentifier)
     })
   }
 
@@ -287,13 +279,18 @@ export class DeploymentCommentManager {
   }
 
   /**
-   * Generate deployment comment body
+   * Generate comment body for any deployment status
    */
-  private generateDeploymentCommentBody(
+  private generateCommentBody(
     identifier: string,
     status: DeploymentStatus,
     details: DeploymentDetails
   ): string {
+    // Handle teardown status separately
+    if (status === DeploymentStatus.TornDown) {
+      return this.generateTeardownCommentBody(identifier, details)
+    }
+
     const statusEmoji = {
       deployed: '🚀',
       verified: '✅',

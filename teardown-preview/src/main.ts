@@ -234,7 +234,7 @@ async function handleTargetedDeletion(
           prNumber,
           commitSha
         )
-        await commentManager.createTeardownComment({
+        await commentManager.createOrUpdateTeardownComment({
           wasTimeoutTriggered: false,
           environment
         })
@@ -334,7 +334,7 @@ async function handleBulkDeletion(
             prNumber,
             commitSha
           )
-          await commentManager.createTeardownComment({
+          await commentManager.createOrUpdateTeardownComment({
             wasTimeoutTriggered: true,
             age: ageDisplay,
             environment
