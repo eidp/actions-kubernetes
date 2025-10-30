@@ -366,6 +366,13 @@ export class DeploymentCommentManager {
 
     body += `\n_See [workflow run](${this.workflowRunUrl}) for full details._\n`
 
+    // Only show slash commands for preview environments (starting with pr-)
+    if (details.environment.startsWith('pr-')) {
+      body += `\n---\n**Available commands:**\n`
+      body += `- \`/deploy\` - Redeploy this environment\n`
+      body += `- \`/teardown\` - Remove this environment\n`
+    }
+
     return body
   }
 
@@ -402,6 +409,12 @@ export class DeploymentCommentManager {
     body += `- Commit: [\`${this.commit.substring(0, 7)}\`](${this.commitUrl})\n`
 
     body += `\n_See [workflow run](${this.workflowRunUrl}) for full details._\n`
+
+    // Only show slash commands for preview environments (starting with pr-)
+    if (details.environment.startsWith('pr-')) {
+      body += `\n---\n**Available commands:**\n`
+      body += `- \`/deploy\` - Redeploy this environment\n`
+    }
 
     return body
   }
