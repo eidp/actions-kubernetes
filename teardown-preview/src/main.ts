@@ -17,10 +17,7 @@ import {
   deleteOCIRepository,
   deleteMatchingOCIRepository,
   waitForDeletion,
-  waitForKustomizationDeletion,
-  deleteNamespace,
-  waitForNamespaceDeletion,
-  getNamespaceFromKustomization
+  waitForKustomizationDeletion
 } from './k8s-operations'
 import { generateSummary } from './summary'
 import {
@@ -190,20 +187,6 @@ async function handleTargetedDeletion(
         core.info(`  - OCIRepository: ${oci.metadata.name}`)
       })
     } else {
-      // Step 1: Delete preview namespace first
-      core.info('Deleting preview namespace...')
-      for (const kust of kustomizations) {
-        const namespace = getNamespaceFromKustomization(kust)
-        if (namespace) {
-          await deleteNamespace(kc, namespace, inputs.dryRun)
-          if (inputs.waitForDeletion) {
-            await waitForNamespaceDeletion(kc, namespace, inputs.timeout)
-          }
-        }
-      }
-
-      // Step 2: Delete Kustomizations (most resources already gone)
-      core.info('Deleting Kustomizations...')
       for (const kust of kustomizations) {
         await deleteKustomization(kc, kust.metadata.name, inputs.dryRun)
         outputs.deletedResources.push({
@@ -214,12 +197,10 @@ async function handleTargetedDeletion(
         outputs.deletedCount++
       }
 
-      // Step 3: Delete OCIRepositories
       for (const oci of ociRepositories) {
         await deleteOCIRepository(kc, oci.metadata.name, inputs.dryRun)
       }
 
-      // Step 4: Wait for Kustomization deletion if needed
       if (inputs.waitForDeletion) {
         await waitForDeletion(
           kc,
@@ -320,17 +301,6 @@ async function handleBulkDeletion(
       core.info(`  ℹ️ Would delete: ${name} (age: ${ageDisplay})`)
     } else {
       core.info(`  🗑️ Deleting: ${name} (age: ${ageDisplay})`)
-
-      // Delete preview namespace first
-      const namespace = getNamespaceFromKustomization(kust)
-      if (namespace) {
-        await deleteNamespace(kc, namespace, inputs.dryRun)
-        if (inputs.waitForDeletion) {
-          await waitForNamespaceDeletion(kc, namespace, inputs.timeout)
-        }
-      }
-
-      // Then delete Kustomization
       await deleteKustomization(kc, name, inputs.dryRun)
 
       if (ciReferenceLabel) {

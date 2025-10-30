@@ -1,70 +1,28 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 import * as k8s from '@kubernetes/client-node'
+import { PatchStrategy } from '@kubernetes/client-node'
 import { Kustomization, OCIRepository } from './types'
 import { sanitizeLabelValue } from './utils'
 import { Labels } from '../../shared/src/constants'
 
-export async function createOrUpdateCustomObject(
-  customApi: k8s.CustomObjectsApi,
-  params: {
-    group: string
-    version: string
-    namespace: string
-    plural: string
-    name: string
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    body: any
-    resourceType: string
-  }
+export async function applyCustomObject(
+  kc: k8s.KubeConfig,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  body: any,
+  resourceType: string
 ): Promise<void> {
-  try {
-    await customApi.createNamespacedCustomObject({
-      group: params.group,
-      version: params.version,
-      namespace: params.namespace,
-      plural: params.plural,
-      body: params.body
-    })
-    core.info(`✅ ${params.resourceType} created successfully`)
-  } catch (error: unknown) {
-    if (error instanceof Error && 'code' in error && error.code === 409) {
-      core.info(`${params.resourceType} already exists, updating...`)
-      try {
-        const existing = (await customApi.getNamespacedCustomObject({
-          group: params.group,
-          version: params.version,
-          namespace: params.namespace,
-          plural: params.plural,
-          name: params.name
-        })) as { metadata: { resourceVersion: string } }
+  const client = k8s.KubernetesObjectApi.makeApiClient(kc)
 
-        const updatedBody = {
-          ...params.body,
-          metadata: {
-            ...params.body.metadata,
-            resourceVersion: existing.metadata.resourceVersion
-          }
-        }
-
-        await customApi.replaceNamespacedCustomObject({
-          group: params.group,
-          version: params.version,
-          namespace: params.namespace,
-          plural: params.plural,
-          name: params.name,
-          body: updatedBody
-        })
-        core.info(`✅ ${params.resourceType} updated successfully`)
-      } catch (updateError) {
-        throw new Error(
-          `Failed to update ${params.resourceType}: ${updateError}`
-        )
-      }
-    } else {
-      throw new Error(`Failed to create ${params.resourceType}: ${error}`)
-    }
-  }
+  await client.patch(
+    body,
+    undefined, // pretty
+    undefined, // dryRun
+    'deploy-preview-action', // fieldManager (identifies our action)
+    true, // force (take ownership of conflicting fields)
+    PatchStrategy.ServerSideApply
+  )
+  core.info(`✅ ${resourceType} applied successfully`)
 }
 
 export async function createOCIRepository(
@@ -76,7 +34,6 @@ export async function createOCIRepository(
     environment: string
   }
 ): Promise<void> {
-  const customApi = kc.makeApiClient(k8s.CustomObjectsApi)
   const ciReferenceLabel = sanitizeLabelValue(params.reference)
   const repositoryLabel = sanitizeLabelValue(
     `${github.context.repo.owner}_${github.context.repo.repo}`
@@ -112,15 +69,7 @@ export async function createOCIRepository(
     }
   }
 
-  await createOrUpdateCustomObject(customApi, {
-    group: 'source.toolkit.fluxcd.io',
-    version: 'v1',
-    namespace: 'infra-fluxcd',
-    plural: 'ocirepositories',
-    name: params.name,
-    body: ociRepository,
-    resourceType: 'OCIRepository'
-  })
+  await applyCustomObject(kc, ociRepository, 'OCIRepository')
 }
 
 export async function createKustomization(
@@ -138,7 +87,6 @@ export async function createKustomization(
     timeout: string
   }
 ): Promise<void> {
-  const customApi = kc.makeApiClient(k8s.CustomObjectsApi)
   const ciReferenceLabel = sanitizeLabelValue(params.reference)
   const repositoryLabel = sanitizeLabelValue(
     `${github.context.repo.owner}_${github.context.repo.repo}`
@@ -198,13 +146,5 @@ export async function createKustomization(
     }
   }
 
-  await createOrUpdateCustomObject(customApi, {
-    group: 'kustomize.toolkit.fluxcd.io',
-    version: 'v1',
-    namespace: 'infra-fluxcd',
-    plural: 'kustomizations',
-    name: params.name,
-    body: kustomization,
-    resourceType: 'Kustomization'
-  })
+  await applyCustomObject(kc, kustomization, 'Kustomization')
 }

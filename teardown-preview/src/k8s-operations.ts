@@ -222,44 +222,6 @@ export async function deleteMatchingOCIRepository(
   }
 }
 
-export async function deleteNamespace(
-  kc: k8s.KubeConfig,
-  name: string,
-  dryRun: boolean
-): Promise<void> {
-  if (dryRun) return
-
-  const coreApi = kc.makeApiClient(k8s.CoreV1Api)
-
-  try {
-    await coreApi.deleteNamespace({
-      name,
-      propagationPolicy: 'Foreground',
-      body: {
-        apiVersion: 'v1',
-        kind: 'DeleteOptions',
-        propagationPolicy: 'Foreground'
-      }
-    })
-    core.info(`  ✅ Deleted namespace: ${name}`)
-  } catch (error: unknown) {
-    const hasCode = error instanceof Error && 'code' in error
-    const code = hasCode ? (error as { code: number }).code : null
-
-    if (code === 404) {
-      core.info(`  ℹ️ Namespace ${name} already deleted`)
-    } else {
-      throw error
-    }
-  }
-}
-
-export function getNamespaceFromKustomization(
-  kustomization: Kustomization
-): string | undefined {
-  return kustomization.spec?.postBuild?.substitute?.namespace
-}
-
 export async function waitForDeletion(
   kc: k8s.KubeConfig,
   kustomizations: Kustomization[],
@@ -352,35 +314,6 @@ async function waitForOCIRepositoryDeletion(
       throw error
     }
   }
-}
-
-export async function waitForNamespaceDeletion(
-  kc: k8s.KubeConfig,
-  name: string,
-  timeout: string
-): Promise<void> {
-  core.info(`Waiting for namespace '${name}' to be fully deleted...`)
-  const coreApi = kc.makeApiClient(k8s.CoreV1Api)
-  const timeoutMs = parseTimeout(timeout)
-  const startTime = Date.now()
-  const pollInterval = 2000
-
-  while (Date.now() - startTime < timeoutMs) {
-    try {
-      await coreApi.readNamespace({ name })
-      await new Promise((resolve) => setTimeout(resolve, pollInterval))
-    } catch (error: unknown) {
-      const hasCode = error instanceof Error && 'code' in error
-      const code = hasCode ? (error as { code: number }).code : null
-
-      if (code === 404) {
-        core.info(`✅ Namespace '${name}' fully deleted`)
-        return
-      }
-      throw error
-    }
-  }
-  core.warning(`Timeout waiting for namespace '${name}' deletion`)
 }
 
 function parseTimeout(timeout: string): number {

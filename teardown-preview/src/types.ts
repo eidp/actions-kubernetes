@@ -12,11 +12,6 @@ export interface KubernetesResource {
 export interface Kustomization extends KubernetesResource {
   apiVersion: 'kustomize.toolkit.fluxcd.io/v1'
   kind: 'Kustomization'
-  spec?: {
-    postBuild?: {
-      substitute?: Record<string, string>
-    }
-  }
 }
 
 export interface OCIRepository extends KubernetesResource {
