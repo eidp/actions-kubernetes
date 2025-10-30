@@ -5,17 +5,12 @@ import { FluxResourceSpec, HelmRelease } from '../src/types'
 
 jest.mock('@actions/core')
 
-interface MockCustomObjectsApi {
-  getNamespacedCustomObject: jest.Mock
-}
-
 interface MockWatch {
   watch: jest.Mock
 }
 
 describe('waitForResourceReady', () => {
   let mockKubeConfig: k8s.KubeConfig
-  let mockCustomApi: MockCustomObjectsApi
   let mockWatch: MockWatch
   let spec: FluxResourceSpec
 
@@ -30,83 +25,16 @@ describe('waitForResourceReady', () => {
       kind: 'HelmRelease'
     }
 
-    mockCustomApi = {
-      getNamespacedCustomObject: jest.fn()
-    }
-
     mockWatch = {
       watch: jest.fn()
     }
 
-    mockKubeConfig = {
-      makeApiClient: jest.fn().mockReturnValue(mockCustomApi)
-    } as unknown as k8s.KubeConfig
+    mockKubeConfig = {} as unknown as k8s.KubeConfig
     ;(k8s.Watch as jest.MockedClass<typeof k8s.Watch>) = jest
       .fn()
       .mockImplementation(
         () => mockWatch as unknown as k8s.Watch
       ) as unknown as jest.MockedClass<typeof k8s.Watch>
-  })
-
-  describe('resource already ready', () => {
-    it('should return immediately when resource is already ready', async () => {
-      const readyResource: HelmRelease = {
-        apiVersion: 'helm.toolkit.fluxcd.io/v2',
-        kind: 'HelmRelease',
-        metadata: { name: 'test-release', namespace: 'default' },
-        status: {
-          conditions: [
-            {
-              type: 'Ready',
-              status: 'True',
-              message: 'Release reconciliation succeeded'
-            }
-          ]
-        }
-      }
-
-      mockCustomApi.getNamespacedCustomObject.mockResolvedValue(readyResource)
-
-      const result = await waitForResourceReady(
-        mockKubeConfig,
-        'default',
-        spec,
-        60000
-      )
-
-      expect(result).toEqual({
-        type: 'HelmRelease',
-        name: 'test-release',
-        ready: 'True',
-        message: 'Release reconciliation succeeded'
-      })
-      expect(core.info).toHaveBeenCalledWith(
-        expect.stringContaining("'test-release' is already ready")
-      )
-      expect(mockWatch.watch).not.toHaveBeenCalled()
-    })
-  })
-
-  describe('resource does not exist', () => {
-    it('should throw error when resource returns 404', async () => {
-      const error = Object.assign(new Error('Not found'), { statusCode: 404 })
-      mockCustomApi.getNamespacedCustomObject.mockRejectedValue(error)
-
-      await expect(
-        waitForResourceReady(mockKubeConfig, 'default', spec, 60000)
-      ).rejects.toThrow(
-        "HelmRelease 'test-release' does not exist in namespace 'default'"
-      )
-    })
-
-    it('should throw generic error for other API errors', async () => {
-      const error = Object.assign(new Error('API error'), { statusCode: 500 })
-      mockCustomApi.getNamespacedCustomObject.mockRejectedValue(error)
-
-      await expect(
-        waitForResourceReady(mockKubeConfig, 'default', spec, 60000)
-      ).rejects.toThrow("Failed to get HelmRelease 'test-release': API error")
-    })
   })
 
   describe('watching for resource to become ready', () => {
@@ -133,10 +61,6 @@ describe('waitForResourceReady', () => {
 
       mockWatchRequest = { abort: jest.fn() }
 
-      mockCustomApi.getNamespacedCustomObject.mockResolvedValue(
-        notReadyResource
-      )
-
       mockWatch.watch.mockImplementation((path, _options, onEvent, onDone) => {
         eventCallback = onEvent
         doneCallback = onDone
@@ -152,11 +76,13 @@ describe('waitForResourceReady', () => {
         60000
       )
 
-      // Wait for initial check and watch setup
+      // Wait for watch setup
       await new Promise((resolve) => setImmediate(resolve))
 
       expect(core.info).toHaveBeenCalledWith(
-        expect.stringContaining('not ready yet, waiting for Ready condition')
+        expect.stringContaining(
+          "Waiting for HelmRelease 'test-release' to be ready"
+        )
       )
 
       // Simulate resource becoming ready

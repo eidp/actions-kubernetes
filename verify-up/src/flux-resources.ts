@@ -77,7 +77,6 @@ export async function waitForResourceReady(
   timeout: number,
   chartVersion?: string
 ): Promise<DeploymentStatus> {
-  const customApi = kc.makeApiClient(k8s.CustomObjectsApi)
   const watch = new k8s.Watch(kc)
 
   // Helper function to check if resource meets all criteria
@@ -95,50 +94,13 @@ export async function waitForResourceReady(
     return true
   }
 
-  // First, check if resource exists and get current state
-  try {
-    const resource = (await customApi.getNamespacedCustomObject({
-      group: spec.group,
-      version: spec.version,
-      namespace: namespace,
-      plural: spec.plural,
-      name: spec.name
-    })) as FluxResource
-
-    // If already ready (and has correct version if specified), return immediately
-    if (isResourceFullyReady(resource)) {
-      if (chartVersion && spec.kind === 'HelmRelease') {
-        core.info(
-          `✅ ${spec.kind} '${spec.name}' is already ready with chart version ${chartVersion}`
-        )
-      } else {
-        core.info(`✅ ${spec.kind} '${spec.name}' is already ready`)
-      }
-      return createDeploymentStatus(resource)
-    }
-
-    if (chartVersion && spec.kind === 'HelmRelease') {
-      const deployedVersion = getChartVersionFromResource(resource)
-      core.info(
-        `${spec.kind} '${spec.name}' is not ready yet (current version: ${deployedVersion || 'unknown'}, expected: ${chartVersion}), waiting...`
-      )
-    } else {
-      core.info(
-        `${spec.kind} '${spec.name}' is not ready yet, waiting for Ready condition...`
-      )
-    }
-  } catch (error) {
-    if (error instanceof Error && 'statusCode' in error) {
-      const statusCode = (error as { statusCode?: number }).statusCode
-      if (statusCode === 404) {
-        throw new Error(
-          `${ANSI_RED}ERROR ❌ ${spec.kind} '${spec.name}' does not exist in namespace '${namespace}'${ANSI_RESET}`
-        )
-      }
-    }
-    throw new Error(
-      `Failed to get ${spec.kind} '${spec.name}': ${error instanceof Error ? error.message : String(error)}`
+  // Wait for resource to be ready
+  if (chartVersion && spec.kind === 'HelmRelease') {
+    core.info(
+      `Waiting for ${spec.kind} '${spec.name}' to be ready with chart version ${chartVersion}...`
     )
+  } else {
+    core.info(`Waiting for ${spec.kind} '${spec.name}' to be ready...`)
   }
 
   // Watch for resource changes
