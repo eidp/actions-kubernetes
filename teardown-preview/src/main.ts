@@ -25,9 +25,9 @@ import {
   checkPermissions,
   rejectUnauthorised,
   addReaction
-} from '../../shared/src/slash-commands'
-import { DeploymentCommentManager } from '../../shared/src/deployment-comment-manager'
-import { Labels } from '../../shared/src/constants'
+} from '@actions-kubernetes/shared/slash-commands'
+import { DeploymentCommentManager } from '@actions-kubernetes/shared/deployment-comment-manager'
+import { Labels } from '@actions-kubernetes/shared/constants'
 
 async function run(): Promise<void> {
   const githubToken =

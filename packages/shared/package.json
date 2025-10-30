@@ -1,0 +1,19 @@
+{
+  "name": "@actions-kubernetes/shared",
+  "version": "1.0.0",
+  "description": "Shared utilities for Kubernetes GitHub Actions",
+  "private": true,
+  "main": "./src/index.ts",
+  "exports": {
+    "./constants": "./src/constants.ts",
+    "./deployment-comment-manager": "./src/deployment-comment-manager.ts",
+    "./k8s-connectivity": "./src/k8s-connectivity.ts",
+    "./pr-comments": "./src/pr-comments.ts",
+    "./slash-commands": "./src/slash-commands.ts"
+  },
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@actions/github": "^6.0.1",
+    "@kubernetes/client-node": "^1.4.0"
+  }
+}

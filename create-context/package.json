@@ -1,0 +1,16 @@
+{
+  "name": "@actions-kubernetes/create-context",
+  "version": "1.0.0",
+  "description": "GitHub Action to create Kubernetes context",
+  "private": true,
+  "scripts": {
+    "build": "ncc build src/main.ts -o dist --source-map --license licenses.txt",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@actions/github": "^6.0.1",
+    "@kubernetes/client-node": "^1.4.0",
+    "@actions-kubernetes/shared": "workspace:*"
+  }
+}

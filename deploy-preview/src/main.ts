@@ -7,12 +7,12 @@ import {
   checkPermissions,
   rejectUnauthorised,
   addReaction
-} from '../../shared/src/slash-commands'
-import { verifyKubernetesConnectivity } from '../../shared/src/k8s-connectivity'
+} from '@actions-kubernetes/shared/slash-commands'
+import { verifyKubernetesConnectivity } from '@actions-kubernetes/shared/k8s-connectivity'
 import {
   DeploymentCommentManager,
   DeploymentStatus
-} from '../../shared/src/deployment-comment-manager'
+} from '@actions-kubernetes/shared/deployment-comment-manager'
 
 async function run(): Promise<void> {
   let tenantName = ''

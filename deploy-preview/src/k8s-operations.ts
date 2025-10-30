@@ -4,7 +4,7 @@ import * as k8s from '@kubernetes/client-node'
 import { PatchStrategy } from '@kubernetes/client-node'
 import { Kustomization, OCIRepository } from './types'
 import { sanitizeLabelValue } from './utils'
-import { Labels } from '../../shared/src/constants'
+import { Labels } from '@actions-kubernetes/shared/constants'
 
 export async function applyCustomObject(
   kc: k8s.KubeConfig,

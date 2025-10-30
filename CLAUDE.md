@@ -4,7 +4,9 @@ GitHub Actions for Kubernetes operations.
 
 ## Structure
 
-Actions are located in top-level directories:
+This is a pnpm workspace monorepo. The structure is:
+
+- `packages/shared/` - Shared utilities and types used across all actions
 - `create-context/` - Creates Kubernetes context for authentication
 - `deploy-preview/` - Deploys preview environments
 - `teardown-preview/` - Tears down preview environments
@@ -14,8 +16,17 @@ Each action has:
 - `action.yml` - Action metadata and interface
 - `README.md` - Auto-generated documentation
 - `EXAMPLES.md` - Optional examples and additional docs
-- `src/` - TypeScript source code (for TypeScript actions)
+- `src/` - TypeScript source code
 - `__tests__/` - Jest tests
+- `dist/` - Bundled JavaScript (committed to repo)
+- `package.json` - Workspace package definition
+
+The shared package (`@actions-kubernetes/shared`) exports:
+- Constants and labels
+- Kubernetes connectivity utilities
+- Deployment comment management
+- PR comment utilities
+- Slash command handling
 
 ## Development
 
@@ -25,10 +36,16 @@ Each action has:
 
 TypeScript source goes in `<action-name>/src/main.ts`. Build with:
 ```bash
-npm run package
+pnpm run build
 ```
 
 This uses `@vercel/ncc` to bundle TypeScript into `dist/index.js`.
+
+Import shared utilities using the scoped package name:
+```typescript
+import { Labels } from '@actions-kubernetes/shared/constants'
+import { verifyKubernetesConnectivity } from '@actions-kubernetes/shared/k8s-connectivity'
+```
 
 ### Documentation
 
@@ -38,11 +55,11 @@ To extend generated docs with examples or additional content, create `<action-na
 
 ### Build Commands
 
-- `npm run package` - Bundle all TypeScript actions to dist/
-- `npm run test` - Run Jest tests
-- `npm run lint` - Run ESLint
-- `npm run format:write` - Format code with Prettier
-- `npm run all` - Format, lint, test, coverage, and package
+- `pnpm run build` - Bundle all TypeScript actions to dist/
+- `pnpm run test` - Run Jest tests
+- `pnpm run lint` - Run ESLint
+- `pnpm run format:write` - Format code with Prettier
+- `pnpm run all` - Format, lint, test, coverage, and package
 
 ### Pre-commit Hooks
 

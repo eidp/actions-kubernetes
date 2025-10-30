@@ -85,6 +85,7 @@ jobs:
           namespace: ${{ steps.deploy-preview.outputs.namespace }}
           chart-version: '${{ steps.generate.outputs.version }}'
           flux-resource: 'helmrelease/python-fastapi'
+          github-token: ${{ github.token }}
           timeout: 10m
 
       - name: Teardown preview

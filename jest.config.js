@@ -17,14 +17,16 @@ module.exports = {
   moduleFileExtensions: ['ts', 'js'],
   moduleNameMapper: {
     '^@kubernetes/client-node$':
-      '<rootDir>/__mocks__/@kubernetes/client-node.ts'
+      '<rootDir>/__mocks__/@kubernetes/client-node.ts',
+    '^@actions-kubernetes/shared/(.*)$': '<rootDir>/packages/shared/src/$1'
   },
   preset: 'ts-jest',
+  resolver: 'ts-jest-resolver',
   reporters: ['default'],
   testEnvironment: 'node',
   testMatch: ['**/*.test.ts'],
   testPathIgnorePatterns: ['/dist/', '/node_modules/'],
-  transformIgnorePatterns: ['node_modules/(?!(parse-duration)/)'],
+  transformIgnorePatterns: ['node_modules/(?!(.pnpm|parse-duration)/)'],
   transform: {
     '^.+\\.ts$': [
       'ts-jest',

@@ -1,12 +1,12 @@
 import * as core from '@actions/core'
-import { verifyKubernetesConnectivity } from '../../shared/src/k8s-connectivity'
+import { verifyKubernetesConnectivity } from '@actions-kubernetes/shared/k8s-connectivity'
 import { verifySpecificResource, discoverURL } from './k8s-verification'
 import { generateSummary } from './summary'
 import { DeploymentStatus } from './types'
 import {
   DeploymentCommentManager,
   DeploymentStatus as CommentStatus
-} from '../../shared/src/deployment-comment-manager'
+} from '@actions-kubernetes/shared/deployment-comment-manager'
 
 async function run(): Promise<void> {
   let deploymentStatuses: DeploymentStatus[] = []

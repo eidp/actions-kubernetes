@@ -21,19 +21,22 @@ jobs:
       id: checkout
       uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
+    - name: Setup pnpm
+      uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d # v4.0.0
+
     - name: Setup Node.js
       uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
       with:
         node-version-file: .node-version
-        cache: npm
+        cache: pnpm
 
     - name: Install Dependencies
       id: install
-      run: npm ci
+      run: pnpm install --frozen-lockfile
 
     - name: Build actions
       id: build
-      run: npm run bundle
+      run: pnpm run bundle
 
     # This will fail the workflow if any of the actions `dist/` directories is different than
     # expected.
@@ -66,7 +69,7 @@ jobs:
         if [ $HAS_CHANGES -eq 1 ]; then
           echo ""
           echo "ERROR: Detected uncommitted changes after build."
-          echo "Please run 'npm run bundle' and commit the changes."
+          echo "Please run 'pnpm run bundle' and commit the changes."
           exit 1
         fi
 

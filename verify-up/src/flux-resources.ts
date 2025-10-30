@@ -6,7 +6,7 @@ import {
   createDeploymentStatus,
   getChartVersionFromResource
 } from './utils'
-import { ANSI_RED, ANSI_RESET } from '../../shared/src/constants'
+import { ANSI_RED, ANSI_RESET } from '@actions-kubernetes/shared/constants'
 
 export function parseFluxResourceInput(fluxResource: string): FluxResourceSpec {
   const parts = fluxResource.split('/')

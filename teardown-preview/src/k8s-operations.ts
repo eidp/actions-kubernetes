@@ -2,7 +2,7 @@ import * as core from '@actions/core'
 import * as k8s from '@kubernetes/client-node'
 import parseDuration from 'parse-duration'
 import { Kustomization, OCIRepository } from './types'
-import { Labels } from '../../shared/src/constants'
+import { Labels } from '@actions-kubernetes/shared/constants'
 
 export async function verifyKubernetesConnectivity(
   kubernetesContext: string

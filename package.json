@@ -3,23 +3,19 @@
   "version": "1.0.0",
   "description": "Kubernetes specific GitHub Actions",
   "private": true,
-  "exports": {
-    ".": "./create-context/dist/index.js"
-  },
+  "packageManager": "pnpm@9.15.0",
   "engines": {
     "node": ">=20.0.0"
   },
   "scripts": {
-    "bundle": "npm run format:write && npm run package",
-    "ci-test": "npx jest",
-    "format:write": "npx prettier --write .",
-    "format:check": "npx prettier --check .",
-    "lint": "npx eslint .",
-    "local-action": "npx @github/local-action ./create-context create-context/src/main.ts .env",
-    "package": "ncc build create-context/src/main.ts -o create-context/dist --source-map --license licenses.txt && ncc build deploy-preview/src/main.ts -o deploy-preview/dist --source-map --license licenses.txt && ncc build teardown-preview/src/main.ts -o teardown-preview/dist --source-map --license licenses.txt && ncc build verify-up/src/main.ts -o verify-up/dist --source-map --license licenses.txt",
-    "package:watch": "npm run package -- --watch",
-    "test": "npx jest",
-    "all": "npm run format:write && npm run lint && npm run test && npm run package"
+    "build": "pnpm -r build",
+    "bundle": "pnpm format:write && pnpm build",
+    "ci-test": "jest",
+    "format:write": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "eslint .",
+    "test": "jest",
+    "all": "pnpm format:write && pnpm lint && pnpm test && pnpm build"
   },
   "repository": {
     "type": "git",
@@ -32,14 +28,10 @@
   ],
   "author": "EIDP",
   "license": "Apache-2.0",
-  "dependencies": {
-    "@actions/core": "^1.11.1",
-    "@actions/github": "^6.0.1",
-    "@kubernetes/client-node": "^1.4.0",
-    "parse-duration": "^2.1.4"
-  },
   "devDependencies": {
     "@eslint/compat": "^1.4.0",
+    "@eslint/eslintrc": "^3.3.1",
+    "@eslint/js": "^9.38.0",
     "@github/local-action": "^6.0.0",
     "@jest/globals": "^30.2.0",
     "@types/jest": "^30.0.0",

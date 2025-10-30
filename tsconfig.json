@@ -4,7 +4,11 @@
   "compilerOptions": {
     "module": "CommonJS",
     "moduleResolution": "Node",
-    "outDir": "./dist"
+    "outDir": "./dist",
+    "baseUrl": ".",
+    "paths": {
+      "@actions-kubernetes/shared/*": ["packages/shared/src/*"]
+    }
   },
   "exclude": [
     "__fixtures__",
@@ -20,6 +24,6 @@
     "deploy-preview/src",
     "teardown-preview/src",
     "verify-up/src",
-    "shared/src"
+    "packages/shared/src"
   ]
 }
