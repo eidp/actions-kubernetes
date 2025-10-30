@@ -18,6 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+      actions: read
       pull-requests: write
       issues: write
       id-token: write
@@ -42,11 +43,13 @@ jobs:
           # Use PR branch when triggered by slash command, otherwise use the default ref
           ref: ${{ github.event_name == 'issue_comment' && steps.comment-branch.outputs.head_ref || '' }}
 
-      # This step generates a semantic version based on the commit history.
+      # This step fetches the semantic version based on the commit history.
       # The same version should be used to tag the Helm chart, in case your repository contains one.
-      - name: Generate version
-        id: generate
-        uses: eidp/actions-semver/generate-version@v0
+      - name: Fetch commit version
+        id: commit-version
+        uses: eidp/actions-semver/fetch-commit-version@63e0b74c4b0198e4dd764b2c73c5c447bbb1b29a # v0.3.0
+        with:
+          workflow-name: build  # The name of the workflow that builds the artifacts Docker container / Helm chart
 
       - name: Create Kubernetes context
         id: create-context
@@ -81,6 +84,7 @@ jobs:
           kubernetes-context: ${{ steps.create-context.outputs.context-name }}
           namespace: ${{ steps.deploy-preview.outputs.namespace }}
           chart-version: '${{ steps.generate.outputs.version }}'
+          flux-resource: 'helmrelease/python-fastapi'
           timeout: 10m
 
       - name: Teardown preview
