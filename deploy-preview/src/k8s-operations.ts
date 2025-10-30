@@ -109,7 +109,7 @@ export async function createKustomization(
   }
 
   if (params.chartVersion) {
-    postBuildSubstitute.chartVersion = params.chartVersion
+    postBuildSubstitute.appChartVersion = params.chartVersion
   }
 
   core.info(`Deploying preview tenant: ${params.name}`)

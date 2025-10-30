@@ -77,8 +77,6 @@ export async function waitForResourceReady(
   timeout: number,
   chartVersion?: string
 ): Promise<DeploymentStatus> {
-  const watch = new k8s.Watch(kc)
-
   // Helper function to check if resource meets all criteria
   const isResourceFullyReady = (resource: FluxResource): boolean => {
     if (!isResourceReady(resource)) {
@@ -103,12 +101,14 @@ export async function waitForResourceReady(
     core.info(`Waiting for ${spec.kind} '${spec.name}' to be ready...`)
   }
 
-  // Watch for resource changes
-  return new Promise((resolve, reject) => {
-    const watchPath = `/apis/${spec.group}/${spec.version}/namespaces/${namespace}/${spec.plural}`
+  const startTime = Date.now()
 
+  // Watch with retry logic
+  return new Promise((resolve, reject) => {
     let timeoutHandle: NodeJS.Timeout
     let watchRequest: { abort: () => void } | null = null
+    let retryCount = 0
+    const maxRetries = 5
 
     const cleanup = () => {
       if (timeoutHandle) {
@@ -119,74 +119,113 @@ export async function waitForResourceReady(
       }
     }
 
-    watch
-      .watch(
-        watchPath,
-        {
-          allowWatchBookmarks: true,
-          fieldSelector: `metadata.name=${spec.name}`
-        },
-        // Event callback
-        (type, apiObj) => {
-          if (type === 'ADDED' || type === 'MODIFIED') {
-            const resource = apiObj as FluxResource
-            if (resource.metadata.name === spec.name) {
-              if (isResourceFullyReady(resource)) {
-                cleanup()
-                if (chartVersion && spec.kind === 'HelmRelease') {
-                  core.info(
-                    `✅ ${spec.kind} '${spec.name}' in namespace '${namespace}' is ready with chart version ${chartVersion}`
-                  )
-                } else {
-                  core.info(
-                    `✅ ${spec.kind} '${spec.name}' in namespace '${namespace}' is ready`
-                  )
+    const startWatch = () => {
+      const watch = new k8s.Watch(kc)
+      const watchPath = `/apis/${spec.group}/${spec.version}/namespaces/${namespace}/${spec.plural}`
+
+      watch
+        .watch(
+          watchPath,
+          {
+            allowWatchBookmarks: true,
+            fieldSelector: `metadata.name=${spec.name}`
+          },
+          // Event callback
+          (type, apiObj) => {
+            if (type === 'ADDED' || type === 'MODIFIED') {
+              const resource = apiObj as FluxResource
+              if (resource.metadata.name === spec.name) {
+                if (isResourceFullyReady(resource)) {
+                  cleanup()
+                  if (chartVersion && spec.kind === 'HelmRelease') {
+                    core.info(
+                      `✅ ${spec.kind} '${spec.name}' in namespace '${namespace}' is ready with chart version ${chartVersion}`
+                    )
+                  } else {
+                    core.info(
+                      `✅ ${spec.kind} '${spec.name}' in namespace '${namespace}' is ready`
+                    )
+                  }
+                  resolve(createDeploymentStatus(resource))
                 }
-                resolve(createDeploymentStatus(resource))
               }
             }
-          }
-        },
-        // Done callback
-        (err) => {
-          cleanup()
-          if (err) {
-            // Ignore AbortError since we intentionally abort watches
-            if (
-              err instanceof Error &&
-              (err.name === 'AbortError' || err.message.includes('aborted'))
-            ) {
-              return
-            }
-            reject(
-              new Error(
-                `Watch error for ${spec.kind} '${spec.name}': ${err instanceof Error ? err.message : String(err)}`
+          },
+          // Done callback
+          (err) => {
+            if (err) {
+              // Ignore AbortError since we intentionally abort watches
+              if (
+                err instanceof Error &&
+                (err.name === 'AbortError' || err.message.includes('aborted'))
+              ) {
+                return
+              }
+
+              // Check if we have time left and retries available
+              const elapsed = Date.now() - startTime
+              if (elapsed < timeout && retryCount < maxRetries) {
+                retryCount++
+                const retryDelay = Math.min(
+                  1000 * Math.pow(2, retryCount - 1),
+                  10000
+                )
+                core.info(
+                  `Watch connection closed (${err instanceof Error ? err.message : String(err)}), retrying in ${retryDelay}ms (attempt ${retryCount}/${maxRetries})...`
+                )
+                setTimeout(startWatch, retryDelay)
+                return
+              }
+
+              cleanup()
+              reject(
+                new Error(
+                  `Watch error for ${spec.kind} '${spec.name}': ${err instanceof Error ? err.message : String(err)}`
+                )
               )
-            )
+            }
           }
-        }
-      )
-      .then((req) => {
-        watchRequest = req
-        // Set up timeout to abort watch
-        timeoutHandle = setTimeout(() => {
-          if (watchRequest) {
-            watchRequest.abort()
-          }
-          const errorMsg =
-            chartVersion && spec.kind === 'HelmRelease'
-              ? `${ANSI_RED}ERROR ❌ ${spec.kind} '${spec.name}' did not become ready with chart version ${chartVersion} in namespace '${namespace}' within timeout${ANSI_RESET}`
-              : `${ANSI_RED}ERROR ❌ ${spec.kind} '${spec.name}' is not ready in namespace '${namespace}' within timeout${ANSI_RESET}`
-          reject(new Error(errorMsg))
-        }, timeout)
-      })
-      .catch((err) => {
-        cleanup()
-        reject(
-          new Error(
-            `Failed to start watch for ${spec.kind} '${spec.name}': ${err instanceof Error ? err.message : String(err)}`
-          )
         )
-      })
+        .then((req) => {
+          watchRequest = req
+          // Set up timeout to abort watch (only on first attempt)
+          if (!timeoutHandle) {
+            timeoutHandle = setTimeout(() => {
+              cleanup()
+              const errorMsg =
+                chartVersion && spec.kind === 'HelmRelease'
+                  ? `${ANSI_RED}ERROR ❌ ${spec.kind} '${spec.name}' did not become ready with chart version ${chartVersion} in namespace '${namespace}' within timeout${ANSI_RESET}`
+                  : `${ANSI_RED}ERROR ❌ ${spec.kind} '${spec.name}' is not ready in namespace '${namespace}' within timeout${ANSI_RESET}`
+              reject(new Error(errorMsg))
+            }, timeout)
+          }
+        })
+        .catch((err) => {
+          // Check if we have time left and retries available
+          const elapsed = Date.now() - startTime
+          if (elapsed < timeout && retryCount < maxRetries) {
+            retryCount++
+            const retryDelay = Math.min(
+              1000 * Math.pow(2, retryCount - 1),
+              10000
+            )
+            core.info(
+              `Failed to start watch (${err instanceof Error ? err.message : String(err)}), retrying in ${retryDelay}ms (attempt ${retryCount}/${maxRetries})...`
+            )
+            setTimeout(startWatch, retryDelay)
+            return
+          }
+
+          cleanup()
+          reject(
+            new Error(
+              `Failed to start watch for ${spec.kind} '${spec.name}': ${err instanceof Error ? err.message : String(err)}`
+            )
+          )
+        })
+    }
+
+    // Start the initial watch
+    startWatch()
   })
 }

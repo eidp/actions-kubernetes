@@ -222,32 +222,33 @@ describe('waitForResourceReady', () => {
       expect(mockWatchRequest.abort).toHaveBeenCalled()
     })
 
-    it('should reject on watch error', async () => {
+    it('should retry on watch error and eventually timeout', async () => {
       const promise = waitForResourceReady(
         mockKubeConfig,
         'default',
         spec,
-        60000
+        100 // Short timeout
       )
 
       await new Promise((resolve) => setImmediate(resolve))
 
       doneCallback(new Error('Watch connection lost'))
 
+      // With short timeout, overall timeout fires before retries complete
       await expect(promise).rejects.toThrow(
-        "Watch error for HelmRelease 'test-release': Watch connection lost"
+        "is not ready in namespace 'default' within timeout"
       )
-    })
+    }, 10000)
 
-    it('should reject if watch.watch() fails', async () => {
+    it('should reject if watch.watch() fails after retries', async () => {
       mockWatch.watch.mockRejectedValue(new Error('Failed to start watch'))
 
       await expect(
-        waitForResourceReady(mockKubeConfig, 'default', spec, 60000)
+        waitForResourceReady(mockKubeConfig, 'default', spec, 100) // Short timeout
       ).rejects.toThrow(
         "Failed to start watch for HelmRelease 'test-release': Failed to start watch"
       )
-    })
+    }, 10000)
 
     it('should use correct watch path and options', async () => {
       const promise = waitForResourceReady(
