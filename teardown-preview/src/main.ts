@@ -28,11 +28,21 @@ import {
 } from '@actions-kubernetes/shared/slash-commands'
 import { DeploymentCommentManager } from '@actions-kubernetes/shared/deployment-comment-manager'
 import { Labels } from '@actions-kubernetes/shared/constants'
+import { getPRHeadSha, getPRNumber } from '@actions-kubernetes/shared/pr-utils'
 
 async function run(): Promise<void> {
   const githubToken =
     core.getInput('github-token') || process.env.GITHUB_TOKEN || ''
   let slashCommandId: number | null = null
+  const prNumber = getPRNumber()
+  let commitSha: string | undefined
+
+  if (prNumber) {
+    commitSha = await getPRHeadSha(githubToken, prNumber)
+    core.info(`Resolved PR HEAD SHA: ${commitSha.substring(0, 7)}`)
+  } else {
+    commitSha = github.context.sha
+  }
 
   try {
     // Detect slash command
@@ -96,9 +106,9 @@ async function run(): Promise<void> {
     const kc = await verifyKubernetesConnectivity(inputs.kubernetesContext)
 
     if (inputs.reference) {
-      await handleTargetedDeletion(inputs, outputs, kc, githubToken)
+      await handleTargetedDeletion(inputs, outputs, kc, githubToken, commitSha)
     } else {
-      await handleBulkDeletion(inputs, outputs, kc, githubToken)
+      await handleBulkDeletion(inputs, outputs, kc, githubToken, commitSha)
     }
 
     core.setOutput('deleted-count', outputs.deletedCount)
@@ -132,7 +142,8 @@ async function handleTargetedDeletion(
   inputs: ActionInputs,
   outputs: ActionOutputs,
   kc: k8s.KubeConfig,
-  githubToken: string
+  githubToken: string,
+  commitSha: string
 ): Promise<void> {
   core.startGroup(
     `Targeting preview deployment with reference: ${inputs.reference}`
@@ -220,7 +231,8 @@ async function handleTargetedDeletion(
       if (!isNaN(prNumber)) {
         const commentManager = new DeploymentCommentManager(
           githubToken,
-          prNumber
+          prNumber,
+          commitSha
         )
         await commentManager.createTeardownComment({
           wasTimeoutTriggered: false,
@@ -237,7 +249,8 @@ async function handleBulkDeletion(
   inputs: ActionInputs,
   outputs: ActionOutputs,
   kc: k8s.KubeConfig,
-  githubToken: string
+  githubToken: string,
+  commitSha: string
 ): Promise<void> {
   core.startGroup('Discovering all preview deployments')
 
@@ -318,7 +331,8 @@ async function handleBulkDeletion(
         if (!isNaN(prNumber)) {
           const commentManager = new DeploymentCommentManager(
             githubToken,
-            prNumber
+            prNumber,
+            commitSha
           )
           await commentManager.createTeardownComment({
             wasTimeoutTriggered: true,

@@ -1,6 +1,6 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
-import { getPRNumber, getWorkflowRunUrl } from './pr-comments'
+import { getWorkflowRunUrl } from './pr-utils'
 
 export interface VerifiedResource {
   name: string
@@ -45,7 +45,7 @@ export class DeploymentCommentManager {
   private readonly commitUrl: string = ''
   private readonly workflowRunUrl: string = ''
 
-  constructor(token: string, prNumber?: number | null) {
+  constructor(token: string, prNumber: number | null, commitSha: string) {
     if (!token) {
       core.debug('No GitHub token provided, comment manager will no-op')
       return
@@ -55,9 +55,9 @@ export class DeploymentCommentManager {
     const { owner, repo } = github.context.repo
     this.owner = owner
     this.repo = repo
-    this.prNumber = prNumber !== undefined ? prNumber : getPRNumber()
+    this.prNumber = prNumber
     this.workflowName = github.context.workflow
-    this.commit = github.context.sha
+    this.commit = commitSha
     this.commitUrl = `https://github.com/${owner}/${repo}/commit/${this.commit}`
     this.workflowRunUrl = getWorkflowRunUrl()
   }

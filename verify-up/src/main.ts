@@ -7,6 +7,8 @@ import {
   DeploymentCommentManager,
   DeploymentStatus as CommentStatus
 } from '@actions-kubernetes/shared/deployment-comment-manager'
+import { getPRHeadSha, getPRNumber } from '@actions-kubernetes/shared/pr-utils'
+import * as github from '@actions/github'
 
 async function run(): Promise<void> {
   let deploymentStatuses: DeploymentStatus[] = []
@@ -19,6 +21,8 @@ async function run(): Promise<void> {
   let url = ''
   let githubToken = ''
   let environment = ''
+  const prNumber = getPRNumber()
+  let commitSha: string | undefined
 
   try {
     // Read inputs
@@ -32,6 +36,13 @@ async function run(): Promise<void> {
     const ingressSelector = core.getInput('ingress-selector')
     githubToken =
       core.getInput('github-token') || process.env.GITHUB_TOKEN || ''
+
+    if (prNumber) {
+      commitSha = await getPRHeadSha(githubToken, prNumber)
+      core.info(`Resolved PR HEAD SHA: ${commitSha.substring(0, 7)}`)
+    } else {
+      commitSha = github.context.sha
+    }
 
     // Verify connectivity with namespace and permission checks
     const kc = await verifyKubernetesConnectivity(kubernetesContext, {
@@ -64,7 +75,11 @@ async function run(): Promise<void> {
     })
 
     // Post PR comment if in PR context and token provided
-    const commentManager = new DeploymentCommentManager(githubToken)
+    const commentManager = new DeploymentCommentManager(
+      githubToken,
+      prNumber,
+      commitSha
+    )
     await commentManager.createOrUpdateDeploymentComment(
       CommentStatus.Verified,
       {
@@ -102,7 +117,11 @@ async function run(): Promise<void> {
     )
 
     // Post failure PR comment
-    const failureCommentManager = new DeploymentCommentManager(githubToken)
+    const failureCommentManager = new DeploymentCommentManager(
+      githubToken,
+      prNumber,
+      commitSha || github.context.sha
+    )
     await failureCommentManager.createOrUpdateDeploymentComment(
       CommentStatus.Failed,
       {

@@ -184,31 +184,3 @@ export async function addReaction(
     core.warning(`Failed to add reaction: ${message}`)
   }
 }
-
-/**
- * Gets PR details from issue_comment event
- */
-export async function getPRDetailsFromComment(
-  token: string,
-  prNumber: number
-): Promise<{
-  number: number
-  head_ref: string
-  head_sha: string
-  base_ref: string
-}> {
-  const octokit = github.getOctokit(token)
-
-  const { data: pr } = await octokit.rest.pulls.get({
-    owner: github.context.repo.owner,
-    repo: github.context.repo.repo,
-    pull_number: prNumber
-  })
-
-  return {
-    number: pr.number,
-    head_ref: pr.head.ref,
-    head_sha: pr.head.sha,
-    base_ref: pr.base.ref
-  }
-}

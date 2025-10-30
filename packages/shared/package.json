@@ -8,7 +8,7 @@
     "./constants": "./src/constants.ts",
     "./deployment-comment-manager": "./src/deployment-comment-manager.ts",
     "./k8s-connectivity": "./src/k8s-connectivity.ts",
-    "./pr-comments": "./src/pr-comments.ts",
+    "./pr-utils": "./src/pr-utils.ts",
     "./slash-commands": "./src/slash-commands.ts"
   },
   "dependencies": {

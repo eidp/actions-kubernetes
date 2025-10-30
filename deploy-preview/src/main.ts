@@ -1,4 +1,5 @@
 import * as core from '@actions/core'
+import * as github from '@actions/github'
 import { sanitizeName, truncateName } from './utils'
 import { createOCIRepository, createKustomization } from './k8s-operations'
 import { generateDeploymentSummary } from './summary'
@@ -13,6 +14,7 @@ import {
   DeploymentCommentManager,
   DeploymentStatus
 } from '@actions-kubernetes/shared/deployment-comment-manager'
+import { getPRHeadSha, getPRNumber } from '@actions-kubernetes/shared/pr-utils'
 
 async function run(): Promise<void> {
   let tenantName = ''
@@ -23,6 +25,15 @@ async function run(): Promise<void> {
   const githubToken =
     core.getInput('github-token') || process.env.GITHUB_TOKEN || ''
   let slashCommandId: number | null = null
+  const prNumber = getPRNumber()
+  let commitSha: string | undefined
+
+  if (prNumber) {
+    commitSha = await getPRHeadSha(githubToken, prNumber)
+    core.info(`Resolved PR HEAD SHA: ${commitSha.substring(0, 7)}`)
+  } else {
+    commitSha = github.context.sha
+  }
 
   try {
     // Detect slash command
@@ -146,7 +157,11 @@ async function run(): Promise<void> {
     core.info('✅ Preview deployment resources created successfully')
 
     // Post success comment to PR
-    const commentManager = new DeploymentCommentManager(githubToken)
+    const commentManager = new DeploymentCommentManager(
+      githubToken,
+      prNumber,
+      commitSha
+    )
     await commentManager.createOrUpdateDeploymentComment(
       DeploymentStatus.Deployed,
       {
@@ -165,7 +180,11 @@ async function run(): Promise<void> {
       error instanceof Error ? error.message : 'An unexpected error occurred'
 
     // Post failure comment to PR
-    const commentManager = new DeploymentCommentManager(githubToken)
+    const commentManager = new DeploymentCommentManager(
+      githubToken,
+      prNumber,
+      commitSha
+    )
     await commentManager.createOrUpdateDeploymentComment(
       DeploymentStatus.Failed,
       {
