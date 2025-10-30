@@ -41,7 +41,7 @@ inputs:
     required: false
     default: 'false'
   timeout:
-    description: 'Timeout for wait-for-deletion.'
+    description: 'The time to wait for the deletion to be completed successfully. After the timeout is reached, the job will fail. Example timeout values: 3m, 90s, 2.5m, 2m30s'
     required: false
     default: '5m'
   dry-run:

@@ -1,5 +1,6 @@
 import * as core from '@actions/core'
 import * as k8s from '@kubernetes/client-node'
+import parseDuration from 'parse-duration'
 import { Kustomization, OCIRepository } from './types'
 import { Labels } from '../../shared/src/constants'
 
@@ -221,6 +222,44 @@ export async function deleteMatchingOCIRepository(
   }
 }
 
+export async function deleteNamespace(
+  kc: k8s.KubeConfig,
+  name: string,
+  dryRun: boolean
+): Promise<void> {
+  if (dryRun) return
+
+  const coreApi = kc.makeApiClient(k8s.CoreV1Api)
+
+  try {
+    await coreApi.deleteNamespace({
+      name,
+      propagationPolicy: 'Foreground',
+      body: {
+        apiVersion: 'v1',
+        kind: 'DeleteOptions',
+        propagationPolicy: 'Foreground'
+      }
+    })
+    core.info(`  ✅ Deleted namespace: ${name}`)
+  } catch (error: unknown) {
+    const hasCode = error instanceof Error && 'code' in error
+    const code = hasCode ? (error as { code: number }).code : null
+
+    if (code === 404) {
+      core.info(`  ℹ️ Namespace ${name} already deleted`)
+    } else {
+      throw error
+    }
+  }
+}
+
+export function getNamespaceFromKustomization(
+  kustomization: Kustomization
+): string | undefined {
+  return kustomization.spec?.postBuild?.substitute?.namespace
+}
+
 export async function waitForDeletion(
   kc: k8s.KubeConfig,
   kustomizations: Kustomization[],
@@ -315,23 +354,36 @@ async function waitForOCIRepositoryDeletion(
   }
 }
 
+export async function waitForNamespaceDeletion(
+  kc: k8s.KubeConfig,
+  name: string,
+  timeout: string
+): Promise<void> {
+  core.info(`Waiting for namespace '${name}' to be fully deleted...`)
+  const coreApi = kc.makeApiClient(k8s.CoreV1Api)
+  const timeoutMs = parseTimeout(timeout)
+  const startTime = Date.now()
+  const pollInterval = 2000
+
+  while (Date.now() - startTime < timeoutMs) {
+    try {
+      await coreApi.readNamespace({ name })
+      await new Promise((resolve) => setTimeout(resolve, pollInterval))
+    } catch (error: unknown) {
+      const hasCode = error instanceof Error && 'code' in error
+      const code = hasCode ? (error as { code: number }).code : null
+
+      if (code === 404) {
+        core.info(`✅ Namespace '${name}' fully deleted`)
+        return
+      }
+      throw error
+    }
+  }
+  core.warning(`Timeout waiting for namespace '${name}' deletion`)
+}
+
 function parseTimeout(timeout: string): number {
-  const match = timeout.match(/^(\d+)([smh])$/)
-  if (!match) {
-    return 300000
-  }
-
-  const value = parseInt(match[1], 10)
-  const unit = match[2]
-
-  switch (unit) {
-    case 's':
-      return value * 1000
-    case 'm':
-      return value * 60000
-    case 'h':
-      return value * 3600000
-    default:
-      return 300000
-  }
+  const ms = parseDuration(timeout)
+  return ms ?? 300000 // Default to 5 minutes if parsing fails
 }
