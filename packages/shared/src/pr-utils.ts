@@ -44,20 +44,3 @@ export async function getPRDetails(
     branch: pr.head.ref
   }
 }
-
-/**
- * Gets PR HEAD commit SHA from GitHub API.
- *
- * When workflows are triggered by slash commands (issue_comment event), github.context.sha
- * points to the default branch commit, not the PR's HEAD commit. This function fetches
- * the correct PR HEAD SHA from the GitHub API.
- *
- * @deprecated Use getPRDetails() instead to get both SHA and branch name
- */
-export async function getPRHeadSha(
-  token: string,
-  prNumber: number
-): Promise<string> {
-  const details = await getPRDetails(token, prNumber)
-  return details.sha
-}

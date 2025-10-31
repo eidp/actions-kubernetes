@@ -1,14 +1,8 @@
 import * as core from '@actions/core'
 import * as k8s from '@kubernetes/client-node'
 
-export interface ConnectivityOptions {
-  checkNamespace?: string
-  checkPermissions?: boolean
-}
-
 export async function verifyKubernetesConnectivity(
-  kubernetesContext: string,
-  options?: ConnectivityOptions
+  kubernetesContext: string
 ): Promise<k8s.KubeConfig> {
   core.startGroup('Verifying Kubernetes connectivity')
 
@@ -46,71 +40,57 @@ export async function verifyKubernetesConnectivity(
     )
   }
 
-  const coreV1Api = kc.makeApiClient(k8s.CoreV1Api)
+  // Check FluxCD permissions
+  const customApi = kc.makeApiClient(k8s.CustomObjectsApi)
 
-  if (options?.checkNamespace) {
-    try {
-      await coreV1Api.readNamespace({ name: options.checkNamespace })
-      core.info(`✅ Namespace '${options.checkNamespace}' exists`)
-    } catch {
-      core.error(`❌ Namespace '${options.checkNamespace}' does not exist`)
-      const namespaces = await coreV1Api.listNamespace()
-      core.info('Available namespaces:')
-      namespaces.items.forEach((ns) =>
-        core.info(`  - ${ns.metadata?.name || 'unknown'}`)
+  try {
+    await customApi.listNamespacedCustomObject({
+      group: 'source.toolkit.fluxcd.io',
+      version: 'v1',
+      namespace: 'infra-fluxcd',
+      plural: 'ocirepositories',
+      limit: 1
+    })
+    core.info('✅ Can list OCIRepository resources in infra-fluxcd')
+  } catch (error: unknown) {
+    const hasStatusCode = error instanceof Error && 'statusCode' in error
+    const statusCode = hasStatusCode
+      ? (error as { statusCode: number }).statusCode
+      : null
+
+    if (statusCode === 403) {
+      throw new Error(
+        'Insufficient permissions to list OCIRepository resources in namespace infra-fluxcd'
       )
-      throw new Error(`Namespace '${options.checkNamespace}' does not exist`)
     }
+    throw error
   }
 
-  if (options?.checkPermissions && options?.checkNamespace) {
-    const authApi = kc.makeApiClient(k8s.AuthorizationV1Api)
-    try {
-      const review = await authApi.createSelfSubjectAccessReview({
-        body: {
-          apiVersion: 'authorization.k8s.io/v1',
-          kind: 'SelfSubjectAccessReview',
-          spec: {
-            resourceAttributes: {
-              namespace: options.checkNamespace,
-              verb: 'get',
-              resource: 'pods'
-            }
-          }
-        }
-      })
+  try {
+    await customApi.listNamespacedCustomObject({
+      group: 'kustomize.toolkit.fluxcd.io',
+      version: 'v1',
+      namespace: 'infra-fluxcd',
+      plural: 'kustomizations',
+      limit: 1
+    })
+    core.info('✅ Can list Kustomization resources in infra-fluxcd')
+  } catch (error: unknown) {
+    const hasStatusCode = error instanceof Error && 'statusCode' in error
+    const statusCode = hasStatusCode
+      ? (error as { statusCode: number }).statusCode
+      : null
 
-      if (!review.status?.allowed) {
-        core.startGroup('Current Permissions')
-        const accessReview = await authApi.createSelfSubjectRulesReview({
-          body: {
-            apiVersion: 'authorization.k8s.io/v1',
-            kind: 'SelfSubjectRulesReview',
-            spec: {
-              namespace: options.checkNamespace
-            }
-          }
-        })
-        core.info(JSON.stringify(accessReview.status, null, 2))
-        core.endGroup()
-        throw new Error(
-          `❌ Insufficient permissions to access pods in namespace '${options.checkNamespace}'`
-        )
-      }
-      core.info(
-        `✅ Sufficient permissions to access pods in namespace '${options.checkNamespace}'`
+    if (statusCode === 403) {
+      throw new Error(
+        'Insufficient permissions to list Kustomization resources in namespace infra-fluxcd'
       )
-    } catch (error) {
-      if (
-        error instanceof Error &&
-        error.message.includes('Insufficient permissions')
-      ) {
-        throw error
-      }
-      throw new Error(`Failed to check permissions: ${error}`)
     }
+    throw error
   }
 
+  core.info('✅ Successfully connected to cluster with required permissions')
   core.endGroup()
+
   return kc
 }

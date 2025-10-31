@@ -7,7 +7,7 @@ import {
   DeploymentCommentManager,
   DeploymentStatus as CommentStatus
 } from '@actions-kubernetes/shared/deployment-comment-manager'
-import { getPRHeadSha, getPRNumber } from '@actions-kubernetes/shared/pr-utils'
+import { getPRDetails, getPRNumber } from '@actions-kubernetes/shared/pr-utils'
 import * as github from '@actions/github'
 
 async function run(): Promise<void> {
@@ -38,15 +38,13 @@ async function run(): Promise<void> {
       core.getInput('github-token') || process.env.GITHUB_TOKEN || ''
 
     if (prNumber) {
-      commitSha = await getPRHeadSha(githubToken, prNumber)
+      const prDetails = await getPRDetails(githubToken, prNumber)
+      commitSha = prDetails.sha
       core.info(`Resolved PR HEAD SHA: ${commitSha.substring(0, 7)}`)
     }
 
     // Verify connectivity with namespace and permission checks
-    const kc = await verifyKubernetesConnectivity(kubernetesContext, {
-      checkNamespace: namespace,
-      checkPermissions: true
-    })
+    const kc = await verifyKubernetesConnectivity(kubernetesContext)
 
     // Verify deployment
     deploymentStatuses = await verifySpecificResource(

@@ -9,8 +9,8 @@ import {
   isProtected
 } from './utils'
 import { sanitizeLabelValue } from '@actions-kubernetes/shared/string-utils'
+import { verifyKubernetesConnectivity } from '@actions-kubernetes/shared/k8s-connectivity'
 import {
-  verifyKubernetesConnectivity,
   findResourcesByLabel,
   listKustomizations,
   deleteKustomization,
@@ -28,7 +28,7 @@ import {
 } from '@actions-kubernetes/shared/slash-commands'
 import { DeploymentCommentManager } from '@actions-kubernetes/shared/deployment-comment-manager'
 import { Labels } from '@actions-kubernetes/shared/constants'
-import { getPRHeadSha, getPRNumber } from '@actions-kubernetes/shared/pr-utils'
+import { getPRDetails, getPRNumber } from '@actions-kubernetes/shared/pr-utils'
 
 async function run(): Promise<void> {
   const githubToken =
@@ -38,7 +38,8 @@ async function run(): Promise<void> {
   let commitSha: string = github.context.sha
 
   if (prNumber) {
-    commitSha = await getPRHeadSha(githubToken, prNumber)
+    const prDetails = await getPRDetails(githubToken, prNumber)
+    commitSha = prDetails.sha
     core.info(`Resolved PR HEAD SHA: ${commitSha.substring(0, 7)}`)
   }
 
