@@ -3,7 +3,7 @@
 ### Full example workflow with slash commands
 
 ```yaml
-name: Preview Environment
+name: Preview environment
 
 on:
   pull_request:
@@ -47,7 +47,7 @@ jobs:
       # The same version should be used to tag the Helm chart, in case your repository contains one.
       - name: Fetch commit version
         id: commit-version
-        uses: eidp/actions-semver/fetch-commit-version@63e0b74c4b0198e4dd764b2c73c5c447bbb1b29a # v0.3.0
+        uses: eidp/actions-semver/fetch-commit-version@d4f33761d7dafbeff3241fe8afe927a1d7516703 # v0.4.0
         with:
           workflow-name: build  # The name of the workflow that builds the artifacts Docker container / Helm chart
 
@@ -70,21 +70,21 @@ jobs:
           environment: 'pr-${{ github.event.number || github.event.issue.number }}'
           kubernetes-context: ${{ steps.create-context.outputs.context-name }}
           tenant-name: <<YOUR_TENANT_NAME>>
-          chart-version: '${{ steps.generate.outputs.version }}'
+          chart-version: '${{ steps.commit-version.outputs.version }}'
           reference: ${{ github.event.number || github.event.issue.number }}
           github-token: ${{ github.token }}
           timeout: 10m
 
       - name: Verify preview deployment
         id: verify-preview
-        if: github.event.action != 'closed'
+        if: github.event.action != 'closed' && (github.event_name != 'issue_comment' || steps.deploy-preview.outputs.namespace != '')
         uses: eidp/actions-kubernetes/verify-up@v0
         with:
           environment: 'pr-${{ github.event.number || github.event.issue.number }}'
           kubernetes-context: ${{ steps.create-context.outputs.context-name }}
           namespace: ${{ steps.deploy-preview.outputs.namespace }}
-          chart-version: '${{ steps.generate.outputs.version }}'
           flux-resource: 'helmrelease/python-fastapi'
+          chart-version: '${{ steps.commit-version.outputs.version }}'
           github-token: ${{ github.token }}
           timeout: 10m
 
