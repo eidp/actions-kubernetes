@@ -283,6 +283,7 @@ async function handleBulkDeletion(
     const name = kust.metadata.name
     const ciReferenceLabel = kust.metadata.labels[Labels.CI_REFERENCE] || ''
     const environment = kust.metadata.labels[Labels.ENVIRONMENT] || 'preview'
+    const prNumber = parseInt(kust.metadata.labels[Labels.PR], 10)
     const createdTimestamp = kust.metadata.creationTimestamp
 
     const ageSeconds = calculateAge(createdTimestamp)
@@ -299,7 +300,7 @@ async function handleBulkDeletion(
       continue
     }
 
-    if (await isProtected(ciReferenceLabel, githubToken)) {
+    if (await isProtected(prNumber, githubToken)) {
       core.info(`  🔒 Skipping ${name} (protected by keep-preview label)`)
       outputs.skippedResources.push({
         name,
@@ -325,21 +326,17 @@ async function handleBulkDeletion(
       }
 
       // Post PR comment (timeout-triggered deletion)
-      if (ciReferenceLabel) {
-        const prNumber = parseInt(ciReferenceLabel, 10)
-        // Only post comment if ci-reference is a valid number, we assume that it is a PR number
-        if (!isNaN(prNumber)) {
-          const commentManager = new DeploymentCommentManager(
-            githubToken,
-            prNumber,
-            commitSha
-          )
-          await commentManager.createOrUpdateTeardownComment({
-            wasTimeoutTriggered: true,
-            age: ageDisplay,
-            environment
-          })
-        }
+      if (prNumber) {
+        const commentManager = new DeploymentCommentManager(
+          githubToken,
+          prNumber,
+          commitSha
+        )
+        await commentManager.createOrUpdateTeardownComment({
+          wasTimeoutTriggered: true,
+          age: ageDisplay,
+          environment
+        })
       }
     }
 

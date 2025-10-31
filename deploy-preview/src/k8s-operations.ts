@@ -74,6 +74,7 @@ export async function createOCIRepository(
     tenantName: string
     reference: string
     environment: string
+    prNumber: number | null
   }
 ): Promise<void> {
   const ciReferenceLabel = sanitizeLabelValue(params.reference)
@@ -81,6 +82,7 @@ export async function createOCIRepository(
     `${github.context.repo.owner}_${github.context.repo.repo}`
   )
   const environmentLabel = sanitizeLabelValue(params.environment)
+  const prNumberLabel = sanitizeLabelValue('' + (params.prNumber || ''))
 
   core.info(`Creating OCIRepository: ${params.name}`)
 
@@ -96,7 +98,8 @@ export async function createOCIRepository(
         [Labels.PREVIEW_DEPLOYMENT]: 'true',
         [Labels.CI_REFERENCE]: ciReferenceLabel,
         [Labels.REPOSITORY]: repositoryLabel,
-        [Labels.ENVIRONMENT]: environmentLabel
+        [Labels.ENVIRONMENT]: environmentLabel,
+        [Labels.PR]: prNumberLabel
       }
     },
     spec: {

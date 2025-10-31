@@ -11,5 +11,6 @@ export const Labels = {
   PREVIEW_DEPLOYMENT: 'eidp.io/preview-deployment',
   CI_REFERENCE: 'eidp.io/ci-reference',
   REPOSITORY: 'eidp.io/repository',
-  ENVIRONMENT: 'eidp.io/environment'
+  ENVIRONMENT: 'eidp.io/environment',
+  PR: 'eidp.io/pull-request'
 } as const

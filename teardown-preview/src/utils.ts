@@ -74,13 +74,12 @@ export function getCiPrefixLabel(ciPrefix: string): string {
 }
 
 export async function isProtected(
-  reference: string,
+   prNumber: number,
   token: string
 ): Promise<boolean> {
   if (!token) {
     core.warning(
-      'GitHub token not provided, skipping protection check for reference: ' +
-        reference
+      'GitHub token not provided, skipping protection check for pr: ' + prNumber
     )
     return false
   }
@@ -88,11 +87,6 @@ export async function isProtected(
   try {
     const octokit = github.getOctokit(token)
     const context = github.context
-
-    const prNumber = parseInt(reference, 10)
-    if (isNaN(prNumber)) {
-      return false
-    }
 
     const { data: pr } = await octokit.rest.pulls.get({
       owner: context.repo.owner,
@@ -117,11 +111,11 @@ export async function isProtected(
     const message = error instanceof Error ? error.message : String(error)
 
     if (status === 404) {
-      core.debug(`PR #${reference} not found, treating as not protected`)
+      core.debug(`PR #${prNumber} not found, treating as not protected`)
       return false
     }
 
-    core.warning(`Failed to check protection for PR #${reference}: ${message}`)
+    core.warning(`Failed to check protection for PR #${prNumber}: ${message}`)
     return false
   }
 }

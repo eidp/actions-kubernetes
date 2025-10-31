@@ -133,7 +133,8 @@ async function run(): Promise<void> {
       name: ociRepoName,
       tenantName,
       reference,
-      environment
+      environment,
+      prNumber
     })
 
     gitBranch = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || ''
