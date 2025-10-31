@@ -21,7 +21,7 @@ import {
   DeploymentCommentManager,
   DeploymentStatus
 } from '@actions-kubernetes/shared/deployment-comment-manager'
-import { getPRHeadSha, getPRNumber } from '@actions-kubernetes/shared/pr-utils'
+import { getPRDetails, getPRNumber } from '@actions-kubernetes/shared/pr-utils'
 
 async function run(): Promise<void> {
   let tenantName = ''
@@ -36,8 +36,17 @@ async function run(): Promise<void> {
   let commitSha: string = github.context.sha
 
   if (prNumber) {
-    commitSha = await getPRHeadSha(githubToken, prNumber)
-    core.info(`Resolved PR HEAD SHA: ${commitSha.substring(0, 7)}`)
+    const prDetails = await getPRDetails(githubToken, prNumber)
+    commitSha = prDetails.sha
+    gitBranch = prDetails.branch
+    core.info(
+      `Resolved PR details - SHA: ${commitSha.substring(0, 7)}, Branch: ${gitBranch}`
+    )
+  }
+
+  // If gitBranch wasn't set from PR API (non-PR context), use environment variables
+  if (!gitBranch) {
+    gitBranch = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || ''
   }
 
   try {
@@ -137,8 +146,6 @@ async function run(): Promise<void> {
       environment,
       prNumber
     })
-
-    gitBranch = process.env.GITHUB_HEAD_REF || process.env.GITHUB_REF_NAME || ''
 
     await createKustomization(kc, {
       name: kustomizationName,

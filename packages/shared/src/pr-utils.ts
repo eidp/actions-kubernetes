@@ -15,17 +15,22 @@ export function getWorkflowRunUrl(): string {
   return `${github.context.serverUrl}/${github.context.repo.owner}/${github.context.repo.repo}/actions/runs/${github.context.runId}`
 }
 
+export interface PRDetails {
+  sha: string
+  branch: string
+}
+
 /**
- * Gets PR HEAD commit SHA from GitHub API.
+ * Gets PR details from GitHub API.
  *
- * When workflows are triggered by slash commands (issue_comment event), github.context.sha
- * points to the default branch commit, not the PR's HEAD commit. This function fetches
- * the correct PR HEAD SHA from the GitHub API.
+ * When workflows are triggered by slash commands (issue_comment event), github.context
+ * contains information about the default branch, not the PR. This function fetches
+ * the correct PR details (HEAD SHA and branch name) from the GitHub API.
  */
-export async function getPRHeadSha(
+export async function getPRDetails(
   token: string,
   prNumber: number
-): Promise<string> {
+): Promise<PRDetails> {
   const octokit = github.getOctokit(token)
 
   const { data: pr } = await octokit.rest.pulls.get({
@@ -34,5 +39,25 @@ export async function getPRHeadSha(
     pull_number: prNumber
   })
 
-  return pr.head.sha
+  return {
+    sha: pr.head.sha,
+    branch: pr.head.ref
+  }
+}
+
+/**
+ * Gets PR HEAD commit SHA from GitHub API.
+ *
+ * When workflows are triggered by slash commands (issue_comment event), github.context.sha
+ * points to the default branch commit, not the PR's HEAD commit. This function fetches
+ * the correct PR HEAD SHA from the GitHub API.
+ *
+ * @deprecated Use getPRDetails() instead to get both SHA and branch name
+ */
+export async function getPRHeadSha(
+  token: string,
+  prNumber: number
+): Promise<string> {
+  const details = await getPRDetails(token, prNumber)
+  return details.sha
 }
