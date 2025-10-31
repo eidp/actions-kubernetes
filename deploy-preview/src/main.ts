@@ -1,7 +1,11 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 import { sanitizeName, truncateName } from './utils'
-import { createOCIRepository, createKustomization } from './k8s-operations'
+import {
+  createOCIRepository,
+  createKustomization,
+  readTenantsReplacementConfig
+} from './k8s-operations'
 import { generateDeploymentSummary } from './summary'
 import {
   detectSlashCommand,
@@ -96,6 +100,10 @@ async function run(): Promise<void> {
     // Verify Kubernetes connectivity
     const kc = await verifyKubernetesConnectivity(kubernetesContext)
 
+    // Read tenant replacement config from ConfigMap
+    const { instanceName, clusterName, objectStoreEndpoint } =
+      await readTenantsReplacementConfig(kc)
+
     core.startGroup('Generating resource names')
 
     core.info(`Using reference: ${reference}`)
@@ -140,7 +148,10 @@ async function run(): Promise<void> {
       environment,
       gitBranch,
       chartVersion,
-      timeout
+      timeout,
+      instanceName,
+      clusterName,
+      objectStoreEndpoint
     })
 
     core.endGroup()

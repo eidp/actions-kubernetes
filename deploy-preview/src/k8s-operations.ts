@@ -6,6 +6,48 @@ import { Kustomization, OCIRepository } from './types'
 import { sanitizeLabelValue } from './utils'
 import { Labels } from '@actions-kubernetes/shared/constants'
 
+export interface TenantsReplacementConfig {
+  instanceName: string
+  clusterName: string
+  objectStoreEndpoint: string
+}
+
+export async function readTenantsReplacementConfig(
+  kc: k8s.KubeConfig
+): Promise<TenantsReplacementConfig> {
+  const coreV1Api = kc.makeApiClient(k8s.CoreV1Api)
+
+  try {
+    const configMap = await coreV1Api.readNamespacedConfigMap({
+      name: 'tenants-replacement-config',
+      namespace: 'infra-fluxcd'
+    })
+
+    const instanceName = configMap.data?.instanceName
+    const clusterName = configMap.data?.clusterName
+    const objectStoreEndpoint = configMap.data?.objectStoreEndpoint
+
+    if (!instanceName || !clusterName || !objectStoreEndpoint) {
+      throw new Error(
+        `ConfigMap 'tenants-replacement-config' is missing required keys. Found keys: ${Object.keys(configMap.data || {}).join(', ')}`
+      )
+    }
+
+    core.info(
+      `Read tenant replacement config: instanceName=${instanceName}, clusterName=${clusterName}, objectStoreEndpoint=${objectStoreEndpoint}`
+    )
+
+    return { instanceName, clusterName, objectStoreEndpoint }
+  } catch (error) {
+    if (error instanceof Error) {
+      throw new Error(
+        `Failed to read ConfigMap 'tenants-replacement-config' from namespace 'infra-fluxcd': ${error.message}`
+      )
+    }
+    throw error
+  }
+}
+
 export async function applyCustomObject(
   kc: k8s.KubeConfig,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -85,6 +127,9 @@ export async function createKustomization(
     gitBranch: string
     chartVersion?: string
     timeout: string
+    instanceName: string
+    clusterName: string
+    objectStoreEndpoint: string
   }
 ): Promise<void> {
   const ciReferenceLabel = sanitizeLabelValue(params.reference)
@@ -97,15 +142,15 @@ export async function createKustomization(
   const releaseName = `${params.ciPrefix}${params.tenantName}-tenant`
 
   const postBuildSubstitute: Record<string, string> = {
-    instanceName: 'eidp',
-    clusterName: 'development',
+    instanceName: params.instanceName,
+    clusterName: params.clusterName,
     environmentName: params.environment,
     helmReleaseName: helmReleaseName,
     releaseName: releaseName,
     gitBranch: params.gitBranch,
     namespace: params.namespace,
     namePrefix: params.ciPrefix,
-    objectStoreEndpoint: 'https://core.fuga.cloud:8080'
+    objectStoreEndpoint: params.objectStoreEndpoint
   }
 
   if (params.chartVersion) {
