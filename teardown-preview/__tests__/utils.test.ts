@@ -1,6 +1,8 @@
 import {
   sanitizeName,
-  sanitizeLabelValue,
+  sanitizeLabelValue
+} from '@actions-kubernetes/shared/string-utils'
+import {
   parseAgeToSeconds,
   calculateAge,
   formatAge,

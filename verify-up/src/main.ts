@@ -22,7 +22,7 @@ async function run(): Promise<void> {
   let githubToken = ''
   let environment = ''
   const prNumber = getPRNumber()
-  let commitSha: string | undefined
+  let commitSha: string = github.context.sha
 
   try {
     // Read inputs
@@ -40,8 +40,6 @@ async function run(): Promise<void> {
     if (prNumber) {
       commitSha = await getPRHeadSha(githubToken, prNumber)
       core.info(`Resolved PR HEAD SHA: ${commitSha.substring(0, 7)}`)
-    } else {
-      commitSha = github.context.sha
     }
 
     // Verify connectivity with namespace and permission checks

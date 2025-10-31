@@ -8,6 +8,11 @@ import {
 } from './utils'
 import { ANSI_RED, ANSI_RESET } from '@actions-kubernetes/shared/constants'
 
+// Watch retry configuration
+const INITIAL_RETRY_DELAY_MS = 1000
+const MAX_RETRY_DELAY_MS = 10000
+const MAX_RETRIES = 5
+
 export function parseFluxResourceInput(fluxResource: string): FluxResourceSpec {
   const parts = fluxResource.split('/')
   if (parts.length !== 2) {
@@ -108,7 +113,6 @@ export async function waitForResourceReady(
     let timeoutHandle: NodeJS.Timeout
     let watchRequest: { abort: () => void } | null = null
     let retryCount = 0
-    const maxRetries = 5
 
     const cleanup = () => {
       if (timeoutHandle) {
@@ -164,14 +168,14 @@ export async function waitForResourceReady(
 
               // Check if we have time left and retries available
               const elapsed = Date.now() - startTime
-              if (elapsed < timeout && retryCount < maxRetries) {
+              if (elapsed < timeout && retryCount < MAX_RETRIES) {
                 retryCount++
                 const retryDelay = Math.min(
-                  1000 * Math.pow(2, retryCount - 1),
-                  10000
+                  INITIAL_RETRY_DELAY_MS * Math.pow(2, retryCount - 1),
+                  MAX_RETRY_DELAY_MS
                 )
                 core.info(
-                  `Watch connection closed (${err instanceof Error ? err.message : String(err)}), retrying in ${retryDelay}ms (attempt ${retryCount}/${maxRetries})...`
+                  `Watch connection closed (${err instanceof Error ? err.message : String(err)}), retrying in ${retryDelay}ms (attempt ${retryCount}/${MAX_RETRIES})...`
                 )
                 setTimeout(startWatch, retryDelay)
                 return
@@ -203,14 +207,14 @@ export async function waitForResourceReady(
         .catch((err) => {
           // Check if we have time left and retries available
           const elapsed = Date.now() - startTime
-          if (elapsed < timeout && retryCount < maxRetries) {
+          if (elapsed < timeout && retryCount < MAX_RETRIES) {
             retryCount++
             const retryDelay = Math.min(
-              1000 * Math.pow(2, retryCount - 1),
-              10000
+              INITIAL_RETRY_DELAY_MS * Math.pow(2, retryCount - 1),
+              MAX_RETRY_DELAY_MS
             )
             core.info(
-              `Failed to start watch (${err instanceof Error ? err.message : String(err)}), retrying in ${retryDelay}ms (attempt ${retryCount}/${maxRetries})...`
+              `Failed to start watch (${err instanceof Error ? err.message : String(err)}), retrying in ${retryDelay}ms (attempt ${retryCount}/${MAX_RETRIES})...`
             )
             setTimeout(startWatch, retryDelay)
             return

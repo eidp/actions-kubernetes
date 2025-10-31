@@ -6,9 +6,9 @@ import {
   parseAgeToSeconds,
   calculateAge,
   formatAge,
-  isProtected,
-  sanitizeLabelValue
+  isProtected
 } from './utils'
+import { sanitizeLabelValue } from '@actions-kubernetes/shared/string-utils'
 import {
   verifyKubernetesConnectivity,
   findResourcesByLabel,
@@ -35,13 +35,11 @@ async function run(): Promise<void> {
     core.getInput('github-token') || process.env.GITHUB_TOKEN || ''
   let slashCommandId: number | null = null
   const prNumber = getPRNumber()
-  let commitSha: string | undefined
+  let commitSha: string = github.context.sha
 
   if (prNumber) {
     commitSha = await getPRHeadSha(githubToken, prNumber)
     core.info(`Resolved PR HEAD SHA: ${commitSha.substring(0, 7)}`)
-  } else {
-    commitSha = github.context.sha
   }
 
   try {

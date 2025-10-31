@@ -92,6 +92,7 @@ jobs:
           kubernetes-context: ${{ steps.create-context.outputs.context-name }}
           reference: ${{ github.event.number || github.event.issue.number }}
           wait-for-deletion: true
+          github-token: ${{ github.token }}
           timeout: 10m
 ```
 
@@ -129,6 +130,7 @@ jobs:
         uses: eidp/actions-kubernetes/teardown-preview@v0
         with:
           kubernetes-context: ${{ steps.create-context.outputs.context-name }}
+          github-token: ${{ github.token }}
           max-age: 7d
           timeout: 15m
 ```
@@ -200,6 +202,7 @@ jobs:
         uses: eidp/actions-kubernetes/teardown-preview@v0
         with:
           kubernetes-context: ${{ steps.create-context.outputs.context-name }}
+          github-token: ${{ github.token }}
 ```
 
 ## Protection with labels

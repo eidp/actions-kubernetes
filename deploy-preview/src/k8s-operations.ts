@@ -3,7 +3,7 @@ import * as github from '@actions/github'
 import * as k8s from '@kubernetes/client-node'
 import { PatchStrategy } from '@kubernetes/client-node'
 import { Kustomization, OCIRepository } from './types'
-import { sanitizeLabelValue } from './utils'
+import { sanitizeLabelValue } from '@actions-kubernetes/shared/string-utils'
 import { Labels } from '@actions-kubernetes/shared/constants'
 
 export interface TenantsReplacementConfig {

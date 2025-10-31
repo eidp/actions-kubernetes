@@ -1,18 +1,6 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
-
-export function sanitizeName(name: string): string {
-  return name.toLowerCase().replace(/[^a-z0-9-]/g, '')
-}
-
-export function sanitizeLabelValue(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/[^a-z0-9-_.]/g, '_')
-    .replace(/^[^a-z0-9]+/, '')
-    .substring(0, 63)
-    .replace(/[^a-z0-9]+$/, '')
-}
+import { sanitizeName } from '@actions-kubernetes/shared/string-utils'
 
 export function parseAgeToSeconds(ageStr: string): number {
   const dayMatch = ageStr.match(/^(\d+)d$/)
@@ -74,7 +62,7 @@ export function getCiPrefixLabel(ciPrefix: string): string {
 }
 
 export async function isProtected(
-   prNumber: number,
+  prNumber: number,
   token: string
 ): Promise<boolean> {
   if (!token) {
