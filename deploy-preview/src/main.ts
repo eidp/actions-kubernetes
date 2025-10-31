@@ -25,7 +25,7 @@ async function run(): Promise<void> {
   let namespace = ''
   let ciPrefix = ''
   let gitBranch = ''
-  const environment = ''
+  let environment = ''
   const githubToken =
     core.getInput('github-token') || process.env.GITHUB_TOKEN || ''
   let slashCommandId: number | null = null
@@ -79,7 +79,7 @@ async function run(): Promise<void> {
       core.info(`Executing deploy for PR #${slashContext.prNumber}`)
     }
 
-    const environment = core.getInput('environment', { required: true })
+    environment = core.getInput('environment', { required: true })
     const kubernetesContext = core.getInput('kubernetes-context', {
       required: true
     })
