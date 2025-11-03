@@ -1,6 +1,7 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 import { getWorkflowRunUrl } from './pr-utils'
+import { STATUS_EMOJI, STATUS_TITLE, STATUS_DESCRIPTION } from './constants'
 
 export interface VerifiedResource {
   name: string
@@ -279,6 +280,26 @@ export class DeploymentCommentManager {
   }
 
   /**
+   * Generate resources table for displaying resource details
+   */
+  private generateResourcesTable(
+    resources: VerifiedResource[],
+    title: string
+  ): string {
+    let table = `\n**${title}:**\n\n`
+    table += `| Resource | Type | Status |\n`
+    table += `|----------|------|--------|\n`
+
+    for (const resource of resources) {
+      const statusIcon = resource.ready === 'True' ? '✅' : '❌'
+      table += `| ${resource.name} | ${resource.type} | ${statusIcon} ${resource.ready} |\n`
+    }
+
+    table += `\n`
+    return table
+  }
+
+  /**
    * Generate comment body for any deployment status
    */
   private generateCommentBody(
@@ -291,27 +312,9 @@ export class DeploymentCommentManager {
       return this.generateTeardownCommentBody(identifier, details)
     }
 
-    const statusEmoji = {
-      deployed: '🚀',
-      verified: '✅',
-      failed: '❌'
-    }
-
-    const statusTitle = {
-      deployed: 'Deployment created',
-      verified: 'Deployment ready',
-      failed: 'Deployment failed'
-    }
-
-    const statusDescription = {
-      deployed: `Environment \`${details.environment}\` has been created successfully. Your application is now being deployed.`,
-      verified: `Your application has been deployed to environment \`${details.environment}\` and is ready to use.`,
-      failed: `Failed to create or verify your application in environment \`${details.environment}\`.`
-    }
-
     let body = `${identifier}\n\n`
-    body += `${statusEmoji[status]} **${statusTitle[status]}**\n\n`
-    body += `${statusDescription[status]}\n\n`
+    body += `${STATUS_EMOJI[status]} **${STATUS_TITLE[status]}**\n\n`
+    body += `${STATUS_DESCRIPTION[status](details.environment)}\n\n`
 
     if (status === 'verified' && details.url) {
       body += `**Application URL:** [${details.url}](${details.url})\n\n`
@@ -329,33 +332,13 @@ export class DeploymentCommentManager {
 
     body += `- Commit: [\`${this.commit.substring(0, 7)}\`](${this.commitUrl})\n`
 
-    if (status === 'verified' && details.verifiedResources) {
-      body += `\n**Verified resources:**\n\n`
-      body += `| Resource | Type | Status |\n`
-      body += `|----------|------|--------|\n`
-
-      for (const resource of details.verifiedResources) {
-        const statusIcon = resource.ready === 'True' ? '✅' : '❌'
-        body += `| ${resource.name} | ${resource.type} | ${statusIcon} ${resource.ready} |\n`
-      }
-
-      body += `\n`
+    if (details.verifiedResources && details.verifiedResources.length > 0) {
+      const title =
+        status === 'verified' ? 'Verified resources' : 'Resource status'
+      body += this.generateResourcesTable(details.verifiedResources, title)
     }
 
     if (status === 'failed') {
-      if (details.verifiedResources && details.verifiedResources.length > 0) {
-        body += `\n**Resource status:**\n\n`
-        body += `| Resource | Type | Status |\n`
-        body += `|----------|------|--------|\n`
-
-        for (const resource of details.verifiedResources) {
-          const statusIcon = resource.ready === 'True' ? '✅' : '❌'
-          body += `| ${resource.name} | ${resource.type} | ${statusIcon} ${resource.ready} |\n`
-        }
-
-        body += `\n`
-      }
-
       if (details.error) {
         body += `\n**Error details:**\n\`\`\`\n${details.error}\n\`\`\`\n`
       }

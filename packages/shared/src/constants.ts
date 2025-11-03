@@ -11,3 +11,33 @@ export const FLUXCD_NAMESPACE = 'infra-fluxcd'
  * Name of the ConfigMap containing the tenant replacement configuration
  */
 export const TENANT_REPLACEMENT_CONFIG = 'tenants-replacement-config'
+
+/**
+ * Status emojis for deployment comments
+ */
+export const STATUS_EMOJI = {
+  deployed: '🚀',
+  verified: '✅',
+  failed: '❌'
+} as const
+
+/**
+ * Status titles for deployment comments
+ */
+export const STATUS_TITLE = {
+  deployed: 'Deployment created',
+  verified: 'Deployment ready',
+  failed: 'Deployment failed'
+} as const
+
+/**
+ * Status description templates for deployment comments
+ */
+export const STATUS_DESCRIPTION = {
+  deployed: (environment: string) =>
+    `Environment \`${environment}\` has been created successfully. Your application is now being deployed.`,
+  verified: (environment: string) =>
+    `Your application has been deployed to environment \`${environment}\` and is ready to use.`,
+  failed: (environment: string) =>
+    `Failed to create or verify your application in environment \`${environment}\`.`
+} as const
