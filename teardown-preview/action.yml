@@ -70,5 +70,5 @@ outputs:
     description: 'JSON array of skipped resource names with reasons.'
 
 runs:
-  using: 'node20'
+  using: 'node24'
   main: 'dist/index.js'

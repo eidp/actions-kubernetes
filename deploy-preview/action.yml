@@ -76,5 +76,5 @@ outputs:
     description: 'The generated CI prefix used for resource naming.'
 
 runs:
-  using: 'node20'
+  using: 'node24'
   main: 'dist/index.js'
