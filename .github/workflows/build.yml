@@ -37,6 +37,14 @@ jobs:
       id: test
       run: pnpm run test:ci
 
+    - name: Test Report
+      uses: dorny/test-reporter@dc3a92680fcc15842eef52e8c4606ea7ce6bd3f3 # v2.1.1
+      if: ${{ !cancelled() }}
+      with:
+        name: Vitest tests
+        path: junit/test-results.xml
+        reporter: jest-junit
+
   test-create-context:
     runs-on: kubernetes-runner
     if: github.event_name != 'issue_comment'

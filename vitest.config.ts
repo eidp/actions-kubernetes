@@ -5,6 +5,8 @@ export default defineConfig({
   test: {
     environment: 'node',
     setupFiles: ['./vitest.setup.ts'],
+    reporters: ['github-actions', 'junit'],
+    outputFile: 'junit/test-results.xml',
     coverage: {
       provider: 'v8',
       reporter: ['json-summary', 'text', 'lcov'],

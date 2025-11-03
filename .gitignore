@@ -26,6 +26,7 @@ yarn-error.log*
 
 # Testing
 coverage/
+junit/
 
 # Build artifacts (except committed dist folders)
 # Note: create-context/dist/ IS committed
