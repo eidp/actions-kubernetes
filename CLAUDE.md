@@ -56,7 +56,7 @@ To extend generated docs with examples or additional content, create `<action-na
 ### Build Commands
 
 - `pnpm run build` - Bundle all TypeScript actions to dist/
-- `pnpm run test` - Run Vitest tests
+- `pnpm run test:ci` - Run Vitest tests
 - `pnpm run lint` - Run ESLint
 - `pnpm run format:write` - Format code with Prettier
 - `pnpm run all` - Format, lint, test, coverage, and package

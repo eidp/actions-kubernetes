@@ -16,6 +16,37 @@ export interface TenantsReplacementConfig {
   objectStoreEndpoint: string
 }
 
+function getTenantReplacementConfig(
+  data: Record<string, string> | undefined
+): TenantsReplacementConfig {
+  if (!data) {
+    throw new Error(
+      `ConfigMap '${TENANT_REPLACEMENT_CONFIG}' has no data section`
+    )
+  }
+
+  const requiredKeys: (keyof TenantsReplacementConfig)[] = [
+    'instanceName',
+    'clusterName',
+    'objectStoreEndpoint'
+  ]
+
+  const missingKeys = requiredKeys.filter((key) => !data[key])
+
+  if (missingKeys.length > 0) {
+    const foundKeys = Object.keys(data).join(', ')
+    throw new Error(
+      `ConfigMap '${TENANT_REPLACEMENT_CONFIG}' is missing required keys: ${missingKeys.join(', ')}. Found keys: ${foundKeys}`
+    )
+  }
+
+  return {
+    instanceName: data.instanceName,
+    clusterName: data.clusterName,
+    objectStoreEndpoint: data.objectStoreEndpoint
+  }
+}
+
 export async function readTenantsReplacementConfig(
   kc: k8s.KubeConfig
 ): Promise<TenantsReplacementConfig> {
@@ -27,21 +58,13 @@ export async function readTenantsReplacementConfig(
       namespace: FLUXCD_NAMESPACE
     })
 
-    const instanceName = configMap.data?.instanceName
-    const clusterName = configMap.data?.clusterName
-    const objectStoreEndpoint = configMap.data?.objectStoreEndpoint
-
-    if (!instanceName || !clusterName || !objectStoreEndpoint) {
-      throw new Error(
-        `ConfigMap '${TENANT_REPLACEMENT_CONFIG}' is missing required keys. Found keys: ${Object.keys(configMap.data || {}).join(', ')}`
-      )
-    }
+    const config = getTenantReplacementConfig(configMap.data)
 
     core.info(
-      `Read tenant replacement config: instanceName=${instanceName}, clusterName=${clusterName}, objectStoreEndpoint=${objectStoreEndpoint}`
+      `Read tenant replacement config: instanceName=${config.instanceName}, clusterName=${config.clusterName}, objectStoreEndpoint=${config.objectStoreEndpoint}`
     )
 
-    return { instanceName, clusterName, objectStoreEndpoint }
+    return config
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(
