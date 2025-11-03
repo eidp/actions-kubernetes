@@ -3,8 +3,8 @@
 
 Teardown preview environments on an EIDP instance deployed by the deploy-preview action.
 
-This action discovers and deletes Kubernetes resources that were created for preview deployments. 
-FluxCD's pruning will automatically cascade the deletion to namespaces and application resources.
+This action discovers and **deletes** the Kubernetes resources that were created for the preview deployment.
+FluxCD's pruning will automatically cascade the deletion to application resources and other related resources.
 
 A kubernetes context must already be configured prior to using this action.
 Checkout the [Create Kubernetes context](../create-context) action to create and configure a kubernetes context.
