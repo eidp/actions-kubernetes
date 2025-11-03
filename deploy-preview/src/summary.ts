@@ -1,13 +1,9 @@
 import * as core from '@actions/core'
+import { DeploymentSummaryData } from './types'
 
-export async function generateDeploymentSummary(data: {
-  tenantName: string
-  ciPrefix: string
-  namespace: string
-  ociRepoName: string
-  kustomizationName: string
-  gitBranch: string
-}): Promise<void> {
+export async function generateDeploymentSummary(
+  data: DeploymentSummaryData
+): Promise<void> {
   core.startGroup('Generating GitHub summary')
 
   await core.summary

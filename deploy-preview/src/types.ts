@@ -21,6 +21,15 @@ export interface SlashCommandResult {
   commentId: number | null
 }
 
+export interface DeploymentSummaryData {
+  tenantName: string
+  ciPrefix: string
+  namespace: string
+  ociRepoName: string
+  kustomizationName: string
+  gitBranch: string
+}
+
 export interface OCIRepositorySpec {
   interval: string
   url: string
