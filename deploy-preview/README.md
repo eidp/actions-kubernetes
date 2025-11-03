@@ -1,7 +1,7 @@
 <!-- NOTE: This file's contents are automatically generated. Do not edit manually. -->
 # Deploy Preview (Action)
 
-Deploy a preview environment to Kubernetes using FluxCD OCIRepository and Kustomization resources.
+Deploy a preview (aka ephemeral) environment to Kubernetes using FluxCD OCIRepository and Kustomization resources.
 This action creates uniquely-named preview deployments that can coexist for multiple concurrent branches/PRs.
 
 Given an existing tenant definition, this action will roll out an isolated preview deployment of that tenant and its accompanying application(s).
