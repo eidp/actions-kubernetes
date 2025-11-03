@@ -45,6 +45,5 @@ describe('JWT parsing', () => {
     const claims = parseJWTClaims(mockToken)
 
     expect(claims).toEqual(mockPayload)
-    expect(claims.sub).toBe('repo:owner/repo:ref:refs/heads/main')
   })
 })
