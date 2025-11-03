@@ -27,7 +27,7 @@ import {
   addReaction
 } from '@actions-kubernetes/shared/slash-commands'
 import { DeploymentCommentManager } from '@actions-kubernetes/shared/deployment-comment-manager'
-import { Labels } from '@actions-kubernetes/shared/constants'
+import { Labels } from '@actions-kubernetes/shared/labels'
 import { getPRDetails, getPRNumber } from '@actions-kubernetes/shared/pr-utils'
 
 async function run(): Promise<void> {

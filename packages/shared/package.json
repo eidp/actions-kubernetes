@@ -4,11 +4,11 @@
   "type": "module",
   "description": "Shared utilities for Kubernetes GitHub Actions",
   "private": true,
-  "main": "./src/index.ts",
   "exports": {
     "./constants": "./src/constants.ts",
     "./deployment-comment-manager": "./src/deployment-comment-manager.ts",
     "./k8s-connectivity": "./src/k8s-connectivity.ts",
+    "./labels": "./src/labels.ts",
     "./pr-utils": "./src/pr-utils.ts",
     "./slash-commands": "./src/slash-commands.ts",
     "./string-utils": "./src/string-utils.ts"

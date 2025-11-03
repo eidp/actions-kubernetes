@@ -5,10 +5,10 @@ import { PatchStrategy } from '@kubernetes/client-node'
 import { Kustomization, OCIRepository } from './types'
 import { sanitizeLabelValue } from '@actions-kubernetes/shared/string-utils'
 import {
-  Labels,
   FLUXCD_NAMESPACE,
   TENANT_REPLACEMENT_CONFIG
 } from '@actions-kubernetes/shared/constants'
+import { Labels } from '@actions-kubernetes/shared/labels'
 
 export interface TenantsReplacementConfig {
   instanceName: string

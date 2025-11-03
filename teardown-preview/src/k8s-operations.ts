@@ -2,7 +2,8 @@ import * as core from '@actions/core'
 import * as k8s from '@kubernetes/client-node'
 import parseDuration from 'parse-duration'
 import { Kustomization, OCIRepository } from './types'
-import { Labels, FLUXCD_NAMESPACE } from '@actions-kubernetes/shared/constants'
+import { FLUXCD_NAMESPACE } from '@actions-kubernetes/shared/constants'
+import { Labels } from '@actions-kubernetes/shared/labels'
 
 export async function findResourcesByLabel(
   kc: k8s.KubeConfig,
