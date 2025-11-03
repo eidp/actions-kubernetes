@@ -544,8 +544,8 @@ export class FluxClient {
    */
   getChartVersionFromResource(resource: FluxResource): string | undefined {
     if (resource.kind === 'HelmRelease' && resource.status) {
-      return (resource.status as { lastAppliedRevision?: string })
-        .lastAppliedRevision
+      return (resource.status as { lastAttemptedRevision?: string })
+        .lastAttemptedRevision
     }
     return undefined
   }

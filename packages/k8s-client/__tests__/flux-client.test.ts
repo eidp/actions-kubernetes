@@ -29,7 +29,7 @@ describe('FluxClient.waitForResourceReady', () => {
             message: 'Release reconciliation succeeded'
           }
         ],
-        lastAppliedRevision: '0.4.0'
+        lastAttemptedRevision: '0.4.0'
       }
     }
 
@@ -79,7 +79,7 @@ describe('FluxClient.waitForResourceReady', () => {
             message: 'Release reconciliation succeeded'
           }
         ],
-        lastAppliedRevision: '0.4.0'
+        lastAttemptedRevision: '0.4.0'
       }
     }
 
@@ -132,7 +132,7 @@ describe('FluxClient.waitForResourceReady', () => {
             message: 'Release reconciliation succeeded'
           }
         ],
-        lastAppliedRevision: '0.4.0'
+        lastAttemptedRevision: '0.4.0'
       }
     }
 
@@ -187,7 +187,7 @@ describe('FluxClient.waitForResourceReady', () => {
             message: 'Release reconciliation succeeded'
           }
         ],
-        lastAppliedRevision: '0.3.0' // Wrong version
+        lastAttemptedRevision: '0.3.0' // Wrong version
       }
     }
 
@@ -202,7 +202,7 @@ describe('FluxClient.waitForResourceReady', () => {
             message: 'Release reconciliation succeeded'
           }
         ],
-        lastAppliedRevision: '0.4.0' // Correct version
+        lastAttemptedRevision: '0.4.0' // Correct version
       }
     }
 
