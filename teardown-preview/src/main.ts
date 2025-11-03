@@ -2,12 +2,12 @@ import * as core from '@actions/core'
 import * as github from '@actions/github'
 import * as k8s from '@kubernetes/client-node'
 import { ActionInputs, ActionOutputs } from './types'
+import { isProtected } from './utils'
 import {
   parseAgeToSeconds,
   calculateAge,
-  formatAge,
-  isProtected
-} from './utils'
+  formatAge
+} from '@actions-kubernetes/shared/time-utils'
 import { sanitizeLabelValue } from '@actions-kubernetes/shared/string-utils'
 import { verifyKubernetesConnectivity } from '@actions-kubernetes/shared/k8s-connectivity'
 import {

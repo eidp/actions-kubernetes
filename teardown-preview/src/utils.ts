@@ -2,47 +2,6 @@ import * as core from '@actions/core'
 import * as github from '@actions/github'
 import { sanitizeName } from '@actions-kubernetes/shared/string-utils'
 
-export function parseAgeToSeconds(ageStr: string): number {
-  const dayMatch = ageStr.match(/^(\d+)d$/)
-  if (dayMatch) {
-    return parseInt(dayMatch[1], 10) * 86400
-  }
-
-  const hourMatch = ageStr.match(/^(\d+)h$/)
-  if (hourMatch) {
-    return parseInt(hourMatch[1], 10) * 3600
-  }
-
-  const minMatch = ageStr.match(/^(\d+)m$/)
-  if (minMatch) {
-    return parseInt(minMatch[1], 10) * 60
-  }
-
-  throw new Error(
-    `Invalid age format: ${ageStr}. Use format like 7d, 48h, or 30m`
-  )
-}
-
-export function calculateAge(createdTimestamp: string): number {
-  const created = new Date(createdTimestamp).getTime()
-  const now = Date.now()
-  return Math.floor((now - created) / 1000)
-}
-
-export function formatAge(ageSeconds: number): string {
-  const days = Math.floor(ageSeconds / 86400)
-  const hours = Math.floor((ageSeconds % 86400) / 3600)
-  const minutes = Math.floor((ageSeconds % 3600) / 60)
-
-  if (days > 0) {
-    return `${days}d ${hours}h`
-  }
-  if (hours > 0) {
-    return `${hours}h ${minutes}m`
-  }
-  return `${minutes}m`
-}
-
 export function reconstructCiPrefix(
   reference: string,
   prefixLength: number

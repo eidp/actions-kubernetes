@@ -6,10 +6,9 @@ import {
 import {
   parseAgeToSeconds,
   calculateAge,
-  formatAge,
-  reconstructCiPrefix,
-  getCiPrefixLabel
-} from '../src/utils'
+  formatAge
+} from '@actions-kubernetes/shared/time-utils'
+import { reconstructCiPrefix, getCiPrefixLabel } from '../src/utils'
 
 describe('sanitizeName', () => {
   it('should convert to lowercase', () => {
