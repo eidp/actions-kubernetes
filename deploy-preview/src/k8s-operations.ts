@@ -1,20 +1,19 @@
 import * as core from '@actions/core'
-import * as github from '@actions/github'
 import * as k8s from '@kubernetes/client-node'
-import { PatchStrategy } from '@kubernetes/client-node'
-import { Kustomization, OCIRepository } from './types'
-import { sanitizeLabelValue } from '@actions-kubernetes/shared/string-utils'
+import {
+  KubernetesClient,
+  FluxClient,
+  OCIRepository,
+  Kustomization
+} from '@actions-kubernetes/k8s-client'
 import {
   FLUXCD_NAMESPACE,
   TENANT_REPLACEMENT_CONFIG
 } from '@actions-kubernetes/shared/constants'
 import { Labels } from '@actions-kubernetes/shared/labels'
-
-export interface TenantsReplacementConfig {
-  instanceName: string
-  clusterName: string
-  objectStoreEndpoint: string
-}
+import { sanitizeLabelValue } from '@actions-kubernetes/shared/string-utils'
+import * as github from '@actions/github'
+import { TenantsReplacementConfig } from './types'
 
 function getTenantReplacementConfig(
   data: Record<string, string> | undefined
@@ -50,13 +49,13 @@ function getTenantReplacementConfig(
 export async function readTenantsReplacementConfig(
   kc: k8s.KubeConfig
 ): Promise<TenantsReplacementConfig> {
-  const coreV1Api = kc.makeApiClient(k8s.CoreV1Api)
+  const k8sClient = new KubernetesClient(kc)
 
   try {
-    const configMap = await coreV1Api.readNamespacedConfigMap({
-      name: TENANT_REPLACEMENT_CONFIG,
-      namespace: FLUXCD_NAMESPACE
-    })
+    const configMap = await k8sClient.readConfigMap(
+      TENANT_REPLACEMENT_CONFIG,
+      FLUXCD_NAMESPACE
+    )
 
     const config = getTenantReplacementConfig(configMap.data)
 
@@ -75,25 +74,6 @@ export async function readTenantsReplacementConfig(
   }
 }
 
-export async function applyCustomObject(
-  kc: k8s.KubeConfig,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  body: any,
-  resourceType: string
-): Promise<void> {
-  const client = k8s.KubernetesObjectApi.makeApiClient(kc)
-
-  await client.patch(
-    body,
-    undefined, // pretty
-    undefined, // dryRun
-    'deploy-preview-action', // fieldManager (identifies our action)
-    true, // force (take ownership of conflicting fields)
-    PatchStrategy.ServerSideApply
-  )
-  core.info(`✅ ${resourceType} applied successfully`)
-}
-
 export async function createOCIRepository(
   kc: k8s.KubeConfig,
   params: {
@@ -104,14 +84,16 @@ export async function createOCIRepository(
     prNumber: number | null
   }
 ): Promise<void> {
+  const fluxClient = new FluxClient(kc)
+
+  core.info(`Creating OCIRepository: ${params.name}`)
+
   const ciReferenceLabel = sanitizeLabelValue(params.reference)
   const repositoryLabel = sanitizeLabelValue(
     `${github.context.repo.owner}_${github.context.repo.repo}`
   )
   const environmentLabel = sanitizeLabelValue(params.environment)
   const prNumberLabel = sanitizeLabelValue('' + (params.prNumber || ''))
-
-  core.info(`Creating OCIRepository: ${params.name}`)
 
   const ociRepository: OCIRepository = {
     apiVersion: 'source.toolkit.fluxcd.io/v1',
@@ -141,7 +123,7 @@ export async function createOCIRepository(
     }
   }
 
-  await applyCustomObject(kc, ociRepository, 'OCIRepository')
+  await fluxClient.createOCIRepository(ociRepository, 'deploy-preview-action')
 }
 
 export async function createKustomization(
@@ -162,11 +144,7 @@ export async function createKustomization(
     objectStoreEndpoint: string
   }
 ): Promise<void> {
-  const ciReferenceLabel = sanitizeLabelValue(params.reference)
-  const repositoryLabel = sanitizeLabelValue(
-    `${github.context.repo.owner}_${github.context.repo.repo}`
-  )
-  const environmentLabel = sanitizeLabelValue(params.environment)
+  const fluxClient = new FluxClient(kc)
 
   const helmReleaseName = `${params.ciPrefix}${params.tenantName}`
   const releaseName = `${params.ciPrefix}${params.tenantName}-tenant`
@@ -188,6 +166,12 @@ export async function createKustomization(
   }
 
   core.info(`Deploying preview tenant: ${params.name}`)
+
+  const ciReferenceLabel = sanitizeLabelValue(params.reference)
+  const repositoryLabel = sanitizeLabelValue(
+    `${github.context.repo.owner}_${github.context.repo.repo}`
+  )
+  const environmentLabel = sanitizeLabelValue(params.environment)
 
   const kustomization: Kustomization = {
     apiVersion: 'kustomize.toolkit.fluxcd.io/v1',
@@ -221,5 +205,5 @@ export async function createKustomization(
     }
   }
 
-  await applyCustomObject(kc, kustomization, 'Kustomization')
+  await fluxClient.createKustomization(kustomization, 'deploy-preview-action')
 }

@@ -4,3 +4,4 @@ packages:
   - 'deploy-preview'
   - 'teardown-preview'
   - 'verify-up'
+  - 'packages/k8s-client'

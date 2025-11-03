@@ -20,6 +20,8 @@
     "deploy-preview/__tests__",
     "packages/shared/src",
     "packages/shared/__tests__",
+    "packages/k8s-client/src",
+    "packages/k8s-client/__tests__",
     "teardown-preview/src",
     "teardown-preview/__tests__",
     "verify-up/src",

@@ -6,19 +6,12 @@ import { isProtected } from './utils'
 import {
   parseAgeToSeconds,
   calculateAge,
-  formatAge
+  formatAge,
+  parseTimeout
 } from '@actions-kubernetes/shared/time-utils'
 import { sanitizeLabelValue } from '@actions-kubernetes/shared/string-utils'
 import { verifyKubernetesConnectivity } from '@actions-kubernetes/shared/k8s-connectivity'
-import {
-  findResourcesByLabel,
-  listKustomizations,
-  deleteKustomization,
-  deleteOCIRepository,
-  deleteMatchingOCIRepository,
-  waitForDeletion,
-  waitForKustomizationDeletion
-} from './k8s-operations'
+import { FluxClient } from '@actions-kubernetes/k8s-client'
 import { generateSummary } from './summary'
 import {
   detectSlashCommand,
@@ -156,10 +149,9 @@ async function handleTargetedDeletion(
 
   const labelSelector = `${Labels.PREVIEW_DEPLOYMENT}=true,${Labels.CI_REFERENCE}=${ciReferenceLabel}`
 
-  const { kustomizations, ociRepositories } = await findResourcesByLabel(
-    kc,
-    labelSelector
-  )
+  const fluxClient = new FluxClient(kc)
+  const { kustomizations, ociRepositories } =
+    await fluxClient.findResourcesByLabel(labelSelector)
 
   const kustomizationCount = kustomizations.length
   const ociRepoCount = ociRepositories.length
@@ -198,7 +190,7 @@ async function handleTargetedDeletion(
       })
     } else {
       for (const kust of kustomizations) {
-        await deleteKustomization(kc, kust.metadata.name, inputs.dryRun)
+        await fluxClient.deleteKustomization(kust.metadata.name, inputs.dryRun)
         outputs.deletedResources.push({
           type: 'Kustomization',
           name: kust.metadata.name,
@@ -208,16 +200,37 @@ async function handleTargetedDeletion(
       }
 
       for (const oci of ociRepositories) {
-        await deleteOCIRepository(kc, oci.metadata.name, inputs.dryRun)
+        await fluxClient.deleteOCIRepository(oci.metadata.name, inputs.dryRun)
       }
 
       if (inputs.waitForDeletion) {
-        await waitForDeletion(
-          kc,
-          kustomizations,
-          ociRepositories,
-          inputs.timeout
-        )
+        core.info('Waiting for resources to be fully deleted...')
+        const startTime = Date.now()
+        const timeoutMs = parseTimeout(inputs.timeout)
+
+        for (const kust of kustomizations) {
+          await fluxClient.waitForKustomizationDeletion(
+            kust.metadata.name,
+            inputs.timeout
+          )
+          if (Date.now() - startTime > timeoutMs) {
+            core.warning('Timeout reached while waiting for deletion')
+            break
+          }
+        }
+
+        for (const oci of ociRepositories) {
+          await fluxClient.waitForOCIRepositoryDeletion(
+            oci.metadata.name,
+            inputs.timeout
+          )
+          if (Date.now() - startTime > timeoutMs) {
+            core.warning('Timeout reached while waiting for deletion')
+            break
+          }
+        }
+
+        core.info('✅ Resources deleted successfully')
 
         core.info(
           'Waiting an additional 30 seconds for FluxCD to process finalizers and prune managed resources...'
@@ -258,8 +271,8 @@ async function handleBulkDeletion(
   )
   core.info(`Filtering by repository: ${repositoryLabel}`)
 
-  const kustomizations = await listKustomizations(
-    kc,
+  const fluxClient = new FluxClient(kc)
+  const kustomizations = await fluxClient.listKustomizations(
     `${Labels.PREVIEW_DEPLOYMENT}=true,${Labels.REPOSITORY}=${repositoryLabel}`
   )
 
@@ -280,10 +293,10 @@ async function handleBulkDeletion(
 
   for (const kust of kustomizations) {
     const name = kust.metadata.name
-    const ciReferenceLabel = kust.metadata.labels[Labels.CI_REFERENCE] || ''
-    const environment = kust.metadata.labels[Labels.ENVIRONMENT] || 'preview'
-    const prNumber = parseInt(kust.metadata.labels[Labels.PR], 10)
-    const createdTimestamp = kust.metadata.creationTimestamp
+    const ciReferenceLabel = kust.metadata.labels?.[Labels.CI_REFERENCE] || ''
+    const environment = kust.metadata.labels?.[Labels.ENVIRONMENT] || 'preview'
+    const prNumber = parseInt(kust.metadata.labels?.[Labels.PR] || '', 10)
+    const createdTimestamp = kust.metadata.creationTimestamp || ''
 
     const ageSeconds = calculateAge(createdTimestamp)
     const ageDisplay = formatAge(ageSeconds)
@@ -314,14 +327,17 @@ async function handleBulkDeletion(
       core.info(`  ℹ️ Would delete: ${name} (age: ${ageDisplay})`)
     } else {
       core.info(`  🗑️ Deleting: ${name} (age: ${ageDisplay})`)
-      await deleteKustomization(kc, name, inputs.dryRun)
+      await fluxClient.deleteKustomization(name, inputs.dryRun)
 
       if (ciReferenceLabel) {
-        await deleteMatchingOCIRepository(kc, ciReferenceLabel, inputs.dryRun)
+        await fluxClient.deleteMatchingOCIRepository(
+          ciReferenceLabel,
+          inputs.dryRun
+        )
       }
 
       if (inputs.waitForDeletion) {
-        await waitForKustomizationDeletion(kc, name, inputs.timeout)
+        await fluxClient.waitForKustomizationDeletion(name, inputs.timeout)
       }
 
       // Post PR comment (timeout-triggered deletion)

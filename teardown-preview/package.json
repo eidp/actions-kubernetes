@@ -13,6 +13,7 @@
     "@actions/github": "^6.0.1",
     "@kubernetes/client-node": "^1.4.0",
     "parse-duration": "^2.1.4",
-    "@actions-kubernetes/shared": "workspace:*"
+    "@actions-kubernetes/shared": "workspace:*",
+    "@actions-kubernetes/k8s-client": "workspace:*"
   }
 }

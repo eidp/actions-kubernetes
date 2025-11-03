@@ -12,6 +12,7 @@
     "@actions/core": "^1.11.1",
     "@actions/github": "^6.0.1",
     "@kubernetes/client-node": "^1.4.0",
-    "@actions-kubernetes/shared": "workspace:*"
+    "@actions-kubernetes/shared": "workspace:*",
+    "@actions-kubernetes/k8s-client": "workspace:*"
   }
 }

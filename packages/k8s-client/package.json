@@ -1,0 +1,16 @@
+{
+  "name": "@actions-kubernetes/k8s-client",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Kubernetes and FluxCD client for GitHub Actions",
+  "private": true,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@actions/core": "^1.11.1",
+    "@actions/github": "^6.0.1",
+    "@kubernetes/client-node": "^1.4.0",
+    "@actions-kubernetes/shared": "workspace:*"
+  }
+}

@@ -1,5 +1,5 @@
 import * as core from '@actions/core'
-import { DeploymentStatus } from './types'
+import { ResourceVerificationResult } from './types'
 
 export interface SummaryInputs {
   kubernetesContext: string
@@ -13,7 +13,7 @@ export interface SummaryInputs {
 
 export async function generateSummary(
   success: boolean,
-  deploymentStatuses: DeploymentStatus[],
+  verificationResults: ResourceVerificationResult[],
   inputs: Partial<SummaryInputs>,
   errorMessage?: string
 ): Promise<void> {
@@ -68,20 +68,20 @@ export async function generateSummary(
     summary.addRaw(`🔗 [${inputs.url}](${inputs.url})\n`)
   }
 
-  // Add deployment status table if we have statuses
-  if (deploymentStatuses.length > 0) {
+  // Add deployment status table if we have results
+  if (verificationResults.length > 0) {
     summary.addEOL()
     summary.addHeading('Deployment status', 3)
     summary.addEOL()
 
     const statusTable: string[][] = [['Resource', 'Type', 'Status', 'Message']]
 
-    deploymentStatuses.forEach((status) => {
+    verificationResults.forEach((result) => {
       statusTable.push([
-        status.name,
-        status.type,
-        status.ready === 'True' ? '✅ Ready' : '❌ Not Ready',
-        status.message || 'N/A'
+        result.name,
+        result.type,
+        result.ready === 'True' ? '✅ Ready' : '❌ Not Ready',
+        result.message || 'N/A'
       ])
     })
 

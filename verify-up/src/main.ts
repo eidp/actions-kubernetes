@@ -2,16 +2,16 @@ import * as core from '@actions/core'
 import { verifyKubernetesConnectivity } from '@actions-kubernetes/shared/k8s-connectivity'
 import { verifySpecificResource, discoverURL } from './k8s-verification'
 import { generateSummary } from './summary'
-import { DeploymentStatus } from './types'
+import { ResourceVerificationResult } from './types'
 import {
   DeploymentCommentManager,
-  DeploymentStatus as CommentStatus
+  DeploymentStatus
 } from '@actions-kubernetes/shared/deployment-comment-manager'
 import { getPRDetails, getPRNumber } from '@actions-kubernetes/shared/pr-utils'
 import * as github from '@actions/github'
 
 async function run(): Promise<void> {
-  let deploymentStatuses: DeploymentStatus[] = []
+  let verificationResults: ResourceVerificationResult[] = []
   let kubernetesContext = ''
   let namespace = ''
   let fluxResource = ''
@@ -47,7 +47,7 @@ async function run(): Promise<void> {
     const kc = await verifyKubernetesConnectivity(kubernetesContext)
 
     // Verify deployment
-    deploymentStatuses = await verifySpecificResource(
+    verificationResults = await verifySpecificResource(
       kc,
       namespace,
       fluxResource,
@@ -60,7 +60,7 @@ async function run(): Promise<void> {
     core.setOutput('url', url)
 
     // Generate summary
-    await generateSummary(true, deploymentStatuses, {
+    await generateSummary(true, verificationResults, {
       kubernetesContext,
       namespace,
       fluxResource: fluxResource || undefined,
@@ -77,16 +77,16 @@ async function run(): Promise<void> {
       commitSha
     )
     await commentManager.createOrUpdateDeploymentComment(
-      CommentStatus.Verified,
+      DeploymentStatus.Verified,
       {
         namespace,
         url: url || undefined,
         environment,
-        verifiedResources: deploymentStatuses.map((ds) => ({
-          name: ds.name,
-          type: ds.type,
-          ready: ds.ready,
-          message: ds.message
+        verifiedResources: verificationResults.map((result) => ({
+          name: result.name,
+          type: result.type,
+          ready: result.ready,
+          message: result.message
         }))
       }
     )
@@ -99,7 +99,7 @@ async function run(): Promise<void> {
     // Generate failure summary
     await generateSummary(
       false,
-      deploymentStatuses,
+      verificationResults,
       {
         kubernetesContext,
         namespace,
@@ -119,19 +119,16 @@ async function run(): Promise<void> {
       commitSha || github.context.sha
     )
     await failureCommentManager.createOrUpdateDeploymentComment(
-      CommentStatus.Failed,
+      DeploymentStatus.Failed,
       {
         namespace,
         url: url || undefined,
         error: errorMessage,
         environment,
         verifiedResources:
-          deploymentStatuses.length > 0
-            ? deploymentStatuses.map((ds) => ({
-                name: ds.name,
-                type: ds.type,
-                ready: ds.ready,
-                message: ds.message
+          verificationResults.length > 0
+            ? verificationResults.map((result) => ({
+                ...result
               }))
             : undefined
       }

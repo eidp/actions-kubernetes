@@ -53,3 +53,33 @@ export function formatAge(ageSeconds: number): string {
   }
   return `${minutes}m`
 }
+
+/**
+ * Parse timeout string to milliseconds using parse-duration
+ * @param timeout - Timeout string (e.g., '5m', '30s', '2h')
+ * @returns Timeout in milliseconds, defaults to 5 minutes if parsing fails
+ */
+export function parseTimeout(timeout: string): number {
+  // Use dynamic import to avoid adding parse-duration to shared package if not needed
+  // For now, we'll use a simple implementation that matches common patterns
+  const match = timeout.match(/^(\d+)(ms|s|m|h)$/)
+  if (!match) {
+    return 300000 // Default to 5 minutes
+  }
+
+  const value = parseInt(match[1], 10)
+  const unit = match[2]
+
+  switch (unit) {
+    case 'ms':
+      return value
+    case 's':
+      return value * 1000
+    case 'm':
+      return value * 60 * 1000
+    case 'h':
+      return value * 60 * 60 * 1000
+    default:
+      return 300000 // Default to 5 minutes
+  }
+}
