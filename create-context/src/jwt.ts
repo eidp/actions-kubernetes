@@ -10,7 +10,7 @@ export function parseJWTClaims(token: string): JWTClaims {
   }
 
   try {
-    const payload = Buffer.from(parts[1], 'base64').toString('utf8')
+    const payload = atob(parts[1])
     return JSON.parse(payload)
   } catch (error) {
     throw new Error(`Failed to parse JWT: ${error}`)
