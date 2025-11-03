@@ -1,4 +1,4 @@
-import { describe, expect, it, jest, beforeEach } from '@jest/globals'
+import { describe, expect, it, vi, beforeEach } from 'vitest'
 import * as github from '@actions/github'
 import * as core from '@actions/core'
 import {
@@ -8,13 +8,9 @@ import {
   addReaction
 } from '../src/slash-commands'
 
-// Mock dependencies
-jest.mock('@actions/github')
-jest.mock('@actions/core')
-
 describe('detectSlashCommand', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
     // Reset github.context to a clean state
     Object.defineProperty(github, 'context', {
       value: {
@@ -193,25 +189,24 @@ describe('detectSlashCommand', () => {
 
 describe('checkPermissions', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
+    vi.spyOn(core, 'warning').mockImplementation(() => {})
   })
 
   it('should return true for users with write access', async () => {
     const mockOctokit = {
       rest: {
         repos: {
-          getCollaboratorPermissionLevel: jest.fn().mockResolvedValue({
+          getCollaboratorPermissionLevel: vi.fn().mockResolvedValue({
             data: { permission: 'write' }
           })
         }
       }
     }
 
-    jest
-      .spyOn(github, 'getOctokit')
-      .mockReturnValue(
-        mockOctokit as unknown as ReturnType<typeof github.getOctokit>
-      )
+    vi.spyOn(github, 'getOctokit').mockReturnValue(
+      mockOctokit as unknown as ReturnType<typeof github.getOctokit>
+    )
 
     Object.defineProperty(github, 'context', {
       value: {
@@ -230,18 +225,16 @@ describe('checkPermissions', () => {
     const mockOctokit = {
       rest: {
         repos: {
-          getCollaboratorPermissionLevel: jest.fn().mockResolvedValue({
+          getCollaboratorPermissionLevel: vi.fn().mockResolvedValue({
             data: { permission: 'admin' }
           })
         }
       }
     }
 
-    jest
-      .spyOn(github, 'getOctokit')
-      .mockReturnValue(
-        mockOctokit as unknown as ReturnType<typeof github.getOctokit>
-      )
+    vi.spyOn(github, 'getOctokit').mockReturnValue(
+      mockOctokit as unknown as ReturnType<typeof github.getOctokit>
+    )
 
     const result = await checkPermissions('fake-token', 'testuser')
 
@@ -252,18 +245,16 @@ describe('checkPermissions', () => {
     const mockOctokit = {
       rest: {
         repos: {
-          getCollaboratorPermissionLevel: jest.fn().mockResolvedValue({
+          getCollaboratorPermissionLevel: vi.fn().mockResolvedValue({
             data: { permission: 'read' }
           })
         }
       }
     }
 
-    jest
-      .spyOn(github, 'getOctokit')
-      .mockReturnValue(
-        mockOctokit as unknown as ReturnType<typeof github.getOctokit>
-      )
+    vi.spyOn(github, 'getOctokit').mockReturnValue(
+      mockOctokit as unknown as ReturnType<typeof github.getOctokit>
+    )
 
     const result = await checkPermissions('fake-token', 'testuser')
 
@@ -274,18 +265,16 @@ describe('checkPermissions', () => {
     const mockOctokit = {
       rest: {
         repos: {
-          getCollaboratorPermissionLevel: jest
+          getCollaboratorPermissionLevel: vi
             .fn()
             .mockRejectedValue(new Error('API error'))
         }
       }
     }
 
-    jest
-      .spyOn(github, 'getOctokit')
-      .mockReturnValue(
-        mockOctokit as unknown as ReturnType<typeof github.getOctokit>
-      )
+    vi.spyOn(github, 'getOctokit').mockReturnValue(
+      mockOctokit as unknown as ReturnType<typeof github.getOctokit>
+    )
 
     const result = await checkPermissions('fake-token', 'testuser')
 
@@ -296,7 +285,8 @@ describe('checkPermissions', () => {
 
 describe('addReaction', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
+    vi.spyOn(core, 'warning').mockImplementation(() => {})
     Object.defineProperty(github, 'context', {
       value: {
         repo: { owner: 'test-owner', repo: 'test-repo' }
@@ -310,16 +300,14 @@ describe('addReaction', () => {
     const mockOctokit = {
       rest: {
         reactions: {
-          createForIssueComment: jest.fn().mockResolvedValue({})
+          createForIssueComment: vi.fn().mockResolvedValue({})
         }
       }
     }
 
-    jest
-      .spyOn(github, 'getOctokit')
-      .mockReturnValue(
-        mockOctokit as unknown as ReturnType<typeof github.getOctokit>
-      )
+    vi.spyOn(github, 'getOctokit').mockReturnValue(
+      mockOctokit as unknown as ReturnType<typeof github.getOctokit>
+    )
 
     await addReaction('fake-token', 123, '+1')
 
@@ -337,18 +325,16 @@ describe('addReaction', () => {
     const mockOctokit = {
       rest: {
         reactions: {
-          createForIssueComment: jest
+          createForIssueComment: vi
             .fn()
             .mockRejectedValue(new Error('API error'))
         }
       }
     }
 
-    jest
-      .spyOn(github, 'getOctokit')
-      .mockReturnValue(
-        mockOctokit as unknown as ReturnType<typeof github.getOctokit>
-      )
+    vi.spyOn(github, 'getOctokit').mockReturnValue(
+      mockOctokit as unknown as ReturnType<typeof github.getOctokit>
+    )
 
     await addReaction('fake-token', 123, 'eyes')
 
@@ -360,7 +346,9 @@ describe('addReaction', () => {
 
 describe('rejectUnauthorised', () => {
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
+    vi.spyOn(core, 'warning').mockImplementation(() => {})
+    vi.spyOn(core, 'setFailed').mockImplementation(() => {})
     Object.defineProperty(github, 'context', {
       value: {
         repo: { owner: 'test-owner', repo: 'test-repo' }
@@ -374,19 +362,17 @@ describe('rejectUnauthorised', () => {
     const mockOctokit = {
       rest: {
         issues: {
-          createComment: jest.fn().mockResolvedValue({})
+          createComment: vi.fn().mockResolvedValue({})
         },
         reactions: {
-          createForIssueComment: jest.fn().mockResolvedValue({})
+          createForIssueComment: vi.fn().mockResolvedValue({})
         }
       }
     }
 
-    jest
-      .spyOn(github, 'getOctokit')
-      .mockReturnValue(
-        mockOctokit as unknown as ReturnType<typeof github.getOctokit>
-      )
+    vi.spyOn(github, 'getOctokit').mockReturnValue(
+      mockOctokit as unknown as ReturnType<typeof github.getOctokit>
+    )
 
     await rejectUnauthorised('fake-token', 42, 123, 'testuser')
 
@@ -413,19 +399,17 @@ describe('rejectUnauthorised', () => {
     const mockOctokit = {
       rest: {
         issues: {
-          createComment: jest.fn().mockRejectedValue(new Error('API error'))
+          createComment: vi.fn().mockRejectedValue(new Error('API error'))
         },
         reactions: {
-          createForIssueComment: jest.fn().mockResolvedValue({})
+          createForIssueComment: vi.fn().mockResolvedValue({})
         }
       }
     }
 
-    jest
-      .spyOn(github, 'getOctokit')
-      .mockReturnValue(
-        mockOctokit as unknown as ReturnType<typeof github.getOctokit>
-      )
+    vi.spyOn(github, 'getOctokit').mockReturnValue(
+      mockOctokit as unknown as ReturnType<typeof github.getOctokit>
+    )
 
     await expect(
       rejectUnauthorised('fake-token', 42, 123, 'testuser')

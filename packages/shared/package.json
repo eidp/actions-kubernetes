@@ -1,6 +1,7 @@
 {
   "name": "@actions-kubernetes/shared",
   "version": "1.0.0",
+  "type": "module",
   "description": "Shared utilities for Kubernetes GitHub Actions",
   "private": true,
   "main": "./src/index.ts",

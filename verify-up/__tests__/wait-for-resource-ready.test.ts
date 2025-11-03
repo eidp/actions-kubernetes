@@ -1,12 +1,11 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as k8s from '@kubernetes/client-node'
 import * as core from '@actions/core'
 import { waitForResourceReady } from '../src/flux-resources'
 import { FluxResourceSpec, HelmRelease } from '../src/types'
 
-jest.mock('@actions/core')
-
 interface MockWatch {
-  watch: jest.Mock
+  watch: ReturnType<typeof vi.fn>
 }
 
 describe('waitForResourceReady', () => {
@@ -15,7 +14,10 @@ describe('waitForResourceReady', () => {
   let spec: FluxResourceSpec
 
   beforeEach(() => {
-    jest.clearAllMocks()
+    vi.clearAllMocks()
+
+    // Mock core.info
+    vi.spyOn(core, 'info').mockImplementation(() => {})
 
     spec = {
       group: 'helm.toolkit.fluxcd.io',
@@ -26,15 +28,14 @@ describe('waitForResourceReady', () => {
     }
 
     mockWatch = {
-      watch: jest.fn()
+      watch: vi.fn()
     }
 
     mockKubeConfig = {} as unknown as k8s.KubeConfig
-    ;(k8s.Watch as jest.MockedClass<typeof k8s.Watch>) = jest
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    ;(k8s.Watch as any) = vi
       .fn()
-      .mockImplementation(
-        () => mockWatch as unknown as k8s.Watch
-      ) as unknown as jest.MockedClass<typeof k8s.Watch>
+      .mockImplementation(() => mockWatch as unknown as k8s.Watch)
   })
 
   describe('watching for resource to become ready', () => {
@@ -59,7 +60,7 @@ describe('waitForResourceReady', () => {
         }
       }
 
-      mockWatchRequest = { abort: jest.fn() }
+      mockWatchRequest = { abort: vi.fn() }
 
       mockWatch.watch.mockImplementation((path, _options, onEvent, onDone) => {
         eventCallback = onEvent

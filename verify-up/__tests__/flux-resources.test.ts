@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest'
 import { parseFluxResourceInput } from '../src/flux-resources'
 
 describe('flux-resources', () => {

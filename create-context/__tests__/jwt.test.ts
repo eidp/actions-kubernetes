@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest'
 import { parseJWTClaims } from '../src/jwt'
 
 describe('JWT parsing', () => {

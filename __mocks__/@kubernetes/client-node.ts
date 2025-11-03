@@ -1,14 +1,15 @@
 // Mock for @kubernetes/client-node
+import { vi } from 'vitest'
 
 export class KubeConfig {
-  loadFromDefault = jest.fn()
-  getContexts = jest.fn()
-  setCurrentContext = jest.fn()
-  makeApiClient = jest.fn()
+  loadFromDefault = vi.fn()
+  getContexts = vi.fn()
+  setCurrentContext = vi.fn()
+  makeApiClient = vi.fn()
 }
 
 export class Watch {
-  watch = jest.fn()
+  watch = vi.fn()
 }
 
 export class CoreV1Api {}

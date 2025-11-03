@@ -1,11 +1,12 @@
 {
   "name": "@actions-kubernetes/teardown-preview",
   "version": "1.0.0",
+  "type": "module",
   "description": "GitHub Action to teardown preview environments",
   "private": true,
   "scripts": {
     "build": "ncc build src/main.ts -o dist --source-map --license licenses.txt",
-    "test": "jest"
+    "test": "vitest"
   },
   "dependencies": {
     "@actions/core": "^1.11.1",

@@ -7,17 +7,17 @@ GitHub Actions for Kubernetes operations.
 This is a pnpm workspace monorepo. The structure is:
 
 - `packages/shared/` - Shared utilities and types used across all actions
-- `create-context/` - Creates Kubernetes context for authentication
-- `deploy-preview/` - Deploys preview environments
-- `teardown-preview/` - Tears down preview environments
-- `verify-up/` - Verifies Kubernetes resources are up
+- `create-context/` - Creates Kubernetes context for authentication (action)
+- `deploy-preview/` - Deploys preview environments (action)
+- `teardown-preview/` - Tears down preview environments (action)
+- `verify-up/` - Verifies Kubernetes resources are up (action)
 
 Each action has:
 - `action.yml` - Action metadata and interface
 - `README.md` - Auto-generated documentation
 - `EXAMPLES.md` - Optional examples and additional docs
 - `src/` - TypeScript source code
-- `__tests__/` - Jest tests
+- `__tests__/` - Vitest tests
 - `dist/` - Bundled JavaScript (committed to repo)
 - `package.json` - Workspace package definition
 
@@ -56,7 +56,7 @@ To extend generated docs with examples or additional content, create `<action-na
 ### Build Commands
 
 - `pnpm run build` - Bundle all TypeScript actions to dist/
-- `pnpm run test` - Run Jest tests
+- `pnpm run test` - Run Vitest tests
 - `pnpm run lint` - Run ESLint
 - `pnpm run format:write` - Format code with Prettier
 - `pnpm run all` - Format, lint, test, coverage, and package

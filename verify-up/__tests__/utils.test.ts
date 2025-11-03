@@ -1,3 +1,4 @@
+import { describe, it, expect } from 'vitest'
 import { HelmRelease, Kustomization } from '../src/types'
 import {
   isResourceReady,

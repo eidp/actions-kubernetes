@@ -1,6 +1,7 @@
 {
   "name": "actions-kubernetes",
   "version": "1.0.0",
+  "type": "module",
   "description": "Kubernetes specific GitHub Actions",
   "private": true,
   "packageManager": "pnpm@9.15.0",
@@ -10,12 +11,12 @@
   "scripts": {
     "build": "pnpm -r build",
     "bundle": "pnpm format:write && pnpm build",
-    "ci-test": "jest",
     "format:write": "prettier --write .",
     "format:check": "prettier --check .",
     "lint": "eslint .",
-    "test": "jest",
-    "all": "pnpm format:write && pnpm lint && pnpm test && pnpm build"
+    "test": "vitest",
+    "test:ci": "vitest run --coverage",
+    "all": "pnpm format:write && pnpm lint && pnpm run test:ci && pnpm build"
   },
   "repository": {
     "type": "git",
@@ -33,24 +34,21 @@
     "@eslint/eslintrc": "^3.3.1",
     "@eslint/js": "^9.38.0",
     "@github/local-action": "^6.0.0",
-    "@jest/globals": "^30.2.0",
-    "@types/jest": "^30.0.0",
     "@types/node": "^24.6.2",
     "@typescript-eslint/eslint-plugin": "^8.45.0",
     "@typescript-eslint/parser": "^8.32.1",
     "@vercel/ncc": "^0.38.3",
+    "@vitest/coverage-v8": "^2.1.0",
     "eslint": "^9.36.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-import": "^2.32.0",
-    "eslint-plugin-jest": "^29.0.1",
     "eslint-plugin-prettier": "^5.5.4",
+    "eslint-plugin-vitest": "^0.5.0",
     "globals": "^15.13.0",
-    "jest": "^30.2.0",
     "prettier": "^3.6.2",
     "prettier-eslint": "^16.4.2",
-    "ts-jest": "^29.4.4",
-    "ts-jest-resolver": "^2.0.1",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^2.1.0"
   }
 }

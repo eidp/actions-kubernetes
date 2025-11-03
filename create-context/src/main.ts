@@ -22,7 +22,8 @@ async function run(): Promise<void> {
       throw new Error('api-server must be an https:// URL')
     }
 
-    if (!/^[a-zA-Z0-9-]+$/.test(cluster)) {
+    const clusterNameRegex = /^[a-zA-Z0-9-]+$/
+    if (!clusterNameRegex.test(cluster)) {
       throw new Error(
         'cluster must contain only alphanumeric characters and hyphens'
       )
