@@ -367,6 +367,35 @@ export class FluxClient {
       core.info(`Waiting for ${spec.kind} '${spec.name}' to be ready...`)
     }
 
+    // Check current state before starting watch
+    try {
+      const currentResource = (await this.k8sClient.getCustomResource(
+        spec.group,
+        spec.version,
+        namespace,
+        spec.plural,
+        spec.name
+      )) as FluxResource
+
+      if (isResourceFullyReady(currentResource)) {
+        if (chartVersion && spec.kind === 'HelmRelease') {
+          core.info(
+            `✅ ${spec.kind} '${spec.name}' in namespace '${namespace}' is already ready with chart version ${chartVersion}`
+          )
+        } else {
+          core.info(
+            `✅ ${spec.kind} '${spec.name}' in namespace '${namespace}' is already ready`
+          )
+        }
+        return this.createDeploymentStatus(currentResource)
+      }
+    } catch (error: unknown) {
+      // If resource doesn't exist yet or we can't fetch it, continue to watch
+      core.info(
+        `Could not fetch current state (${error instanceof Error ? error.message : String(error)}), will watch for changes...`
+      )
+    }
+
     const startTime = Date.now()
 
     // Watch with retry logic

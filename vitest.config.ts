@@ -16,7 +16,8 @@ export default defineConfig({
         'deploy-preview/src/**',
         'teardown-preview/src/**',
         'verify-up/src/**',
-        'packages/shared/src/**'
+        'packages/shared/src/**',
+        'packages/k8s-client/src/**'
       ],
       exclude: ['**/node_modules/**', '**/dist/**', '**/__tests__/**']
     }
