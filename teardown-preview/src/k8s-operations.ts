@@ -2,7 +2,7 @@ import * as core from '@actions/core'
 import * as k8s from '@kubernetes/client-node'
 import parseDuration from 'parse-duration'
 import { Kustomization, OCIRepository } from './types'
-import { Labels } from '@actions-kubernetes/shared/constants'
+import { Labels, FLUXCD_NAMESPACE } from '@actions-kubernetes/shared/constants'
 
 export async function findResourcesByLabel(
   kc: k8s.KubeConfig,
@@ -16,7 +16,7 @@ export async function findResourcesByLabel(
   const kustomizationsResponse = (await customApi.listNamespacedCustomObject({
     group: 'kustomize.toolkit.fluxcd.io',
     version: 'v1',
-    namespace: 'infra-fluxcd',
+    namespace: FLUXCD_NAMESPACE,
     plural: 'kustomizations',
     labelSelector
   })) as { items: Kustomization[] }
@@ -24,7 +24,7 @@ export async function findResourcesByLabel(
   const ociReposResponse = (await customApi.listNamespacedCustomObject({
     group: 'source.toolkit.fluxcd.io',
     version: 'v1',
-    namespace: 'infra-fluxcd',
+    namespace: FLUXCD_NAMESPACE,
     plural: 'ocirepositories',
     labelSelector
   })) as { items: OCIRepository[] }
@@ -44,7 +44,7 @@ export async function listKustomizations(
   const response = (await customApi.listNamespacedCustomObject({
     group: 'kustomize.toolkit.fluxcd.io',
     version: 'v1',
-    namespace: 'infra-fluxcd',
+    namespace: FLUXCD_NAMESPACE,
     plural: 'kustomizations',
     labelSelector
   })) as { items: Kustomization[] }
@@ -65,7 +65,7 @@ export async function deleteKustomization(
     await customApi.deleteNamespacedCustomObject({
       group: 'kustomize.toolkit.fluxcd.io',
       version: 'v1',
-      namespace: 'infra-fluxcd',
+      namespace: FLUXCD_NAMESPACE,
       plural: 'kustomizations',
       name,
       propagationPolicy: 'Background'
@@ -96,7 +96,7 @@ export async function deleteOCIRepository(
     await customApi.deleteNamespacedCustomObject({
       group: 'source.toolkit.fluxcd.io',
       version: 'v1',
-      namespace: 'infra-fluxcd',
+      namespace: FLUXCD_NAMESPACE,
       plural: 'ocirepositories',
       name,
       propagationPolicy: 'Background',
@@ -133,7 +133,7 @@ export async function deleteMatchingOCIRepository(
     const response = (await customApi.listNamespacedCustomObject({
       group: 'source.toolkit.fluxcd.io',
       version: 'v1',
-      namespace: 'infra-fluxcd',
+      namespace: FLUXCD_NAMESPACE,
       plural: 'ocirepositories',
       labelSelector: `${Labels.PREVIEW_DEPLOYMENT}=true,${Labels.CI_REFERENCE}=${ciReferenceLabel}`
     })) as { items: OCIRepository[] }
@@ -194,7 +194,7 @@ export async function waitForKustomizationDeletion(
       await customApi.getNamespacedCustomObject({
         group: 'kustomize.toolkit.fluxcd.io',
         version: 'v1',
-        namespace: 'infra-fluxcd',
+        namespace: FLUXCD_NAMESPACE,
         plural: 'kustomizations',
         name
       })
@@ -226,7 +226,7 @@ async function waitForOCIRepositoryDeletion(
       await customApi.getNamespacedCustomObject({
         group: 'source.toolkit.fluxcd.io',
         version: 'v1',
-        namespace: 'infra-fluxcd',
+        namespace: FLUXCD_NAMESPACE,
         plural: 'ocirepositories',
         name
       })

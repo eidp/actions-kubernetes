@@ -1,5 +1,6 @@
 import * as core from '@actions/core'
 import * as k8s from '@kubernetes/client-node'
+import { FLUXCD_NAMESPACE } from './constants'
 
 export async function verifyKubernetesConnectivity(
   kubernetesContext: string
@@ -47,11 +48,11 @@ export async function verifyKubernetesConnectivity(
     await customApi.listNamespacedCustomObject({
       group: 'source.toolkit.fluxcd.io',
       version: 'v1',
-      namespace: 'infra-fluxcd',
+      namespace: FLUXCD_NAMESPACE,
       plural: 'ocirepositories',
       limit: 1
     })
-    core.info('✅ Can list OCIRepository resources in infra-fluxcd')
+    core.info(`✅ Can list OCIRepository resources in ${FLUXCD_NAMESPACE}`)
   } catch (error: unknown) {
     const hasStatusCode = error instanceof Error && 'statusCode' in error
     const statusCode = hasStatusCode
@@ -60,7 +61,7 @@ export async function verifyKubernetesConnectivity(
 
     if (statusCode === 403) {
       throw new Error(
-        'Insufficient permissions to list OCIRepository resources in namespace infra-fluxcd'
+        `Insufficient permissions to list OCIRepository resources in namespace ${FLUXCD_NAMESPACE}`
       )
     }
     throw error
@@ -70,11 +71,11 @@ export async function verifyKubernetesConnectivity(
     await customApi.listNamespacedCustomObject({
       group: 'kustomize.toolkit.fluxcd.io',
       version: 'v1',
-      namespace: 'infra-fluxcd',
+      namespace: FLUXCD_NAMESPACE,
       plural: 'kustomizations',
       limit: 1
     })
-    core.info('✅ Can list Kustomization resources in infra-fluxcd')
+    core.info(`✅ Can list Kustomization resources in ${FLUXCD_NAMESPACE}`)
   } catch (error: unknown) {
     const hasStatusCode = error instanceof Error && 'statusCode' in error
     const statusCode = hasStatusCode
@@ -83,7 +84,7 @@ export async function verifyKubernetesConnectivity(
 
     if (statusCode === 403) {
       throw new Error(
-        'Insufficient permissions to list Kustomization resources in namespace infra-fluxcd'
+        `Insufficient permissions to list Kustomization resources in namespace ${FLUXCD_NAMESPACE}`
       )
     }
     throw error

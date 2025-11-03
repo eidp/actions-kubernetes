@@ -4,7 +4,11 @@ import * as k8s from '@kubernetes/client-node'
 import { PatchStrategy } from '@kubernetes/client-node'
 import { Kustomization, OCIRepository } from './types'
 import { sanitizeLabelValue } from '@actions-kubernetes/shared/string-utils'
-import { Labels } from '@actions-kubernetes/shared/constants'
+import {
+  Labels,
+  FLUXCD_NAMESPACE,
+  TENANT_REPLACEMENT_CONFIG
+} from '@actions-kubernetes/shared/constants'
 
 export interface TenantsReplacementConfig {
   instanceName: string
@@ -19,8 +23,8 @@ export async function readTenantsReplacementConfig(
 
   try {
     const configMap = await coreV1Api.readNamespacedConfigMap({
-      name: 'tenants-replacement-config',
-      namespace: 'infra-fluxcd'
+      name: TENANT_REPLACEMENT_CONFIG,
+      namespace: FLUXCD_NAMESPACE
     })
 
     const instanceName = configMap.data?.instanceName
@@ -29,7 +33,7 @@ export async function readTenantsReplacementConfig(
 
     if (!instanceName || !clusterName || !objectStoreEndpoint) {
       throw new Error(
-        `ConfigMap 'tenants-replacement-config' is missing required keys. Found keys: ${Object.keys(configMap.data || {}).join(', ')}`
+        `ConfigMap '${TENANT_REPLACEMENT_CONFIG}' is missing required keys. Found keys: ${Object.keys(configMap.data || {}).join(', ')}`
       )
     }
 
@@ -41,7 +45,7 @@ export async function readTenantsReplacementConfig(
   } catch (error) {
     if (error instanceof Error) {
       throw new Error(
-        `Failed to read ConfigMap 'tenants-replacement-config' from namespace 'infra-fluxcd': ${error.message}`
+        `Failed to read ConfigMap '${TENANT_REPLACEMENT_CONFIG}' from namespace '${FLUXCD_NAMESPACE}': ${error.message}`
       )
     }
     throw error
@@ -91,7 +95,7 @@ export async function createOCIRepository(
     kind: 'OCIRepository',
     metadata: {
       name: params.name,
-      namespace: 'infra-fluxcd',
+      namespace: FLUXCD_NAMESPACE,
       labels: {
         [Labels.MANAGED_BY]: 'github-actions',
         [Labels.CREATED_BY]: 'deploy-preview',
@@ -167,7 +171,7 @@ export async function createKustomization(
     kind: 'Kustomization',
     metadata: {
       name: params.name,
-      namespace: 'infra-fluxcd',
+      namespace: FLUXCD_NAMESPACE,
       labels: {
         [Labels.MANAGED_BY]: 'github-actions',
         [Labels.CREATED_BY]: 'deploy-preview',
