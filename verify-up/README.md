@@ -1,7 +1,7 @@
 <!-- NOTE: This file's contents are automatically generated. Do not edit manually. -->
 # Verify Up (Action)
 
-This actions verifies whether the deployment specified in by the provided inputs is up and running.
+This actions verifies whether the deployment specified by the provided inputs is up and running.
 It checks the status of the deployment in the specified Kubernetes namespace.
 
 A kubernetes context must already be configured prior to using this action.

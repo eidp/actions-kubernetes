@@ -1,10 +1,9 @@
 name: 'Teardown Preview'
 description: |
-  Teardown preview environments deployed by the deploy-preview action.
+  Teardown preview environments on an EIDP instance deployed by the deploy-preview action.
 
-  This action discovers and deletes FluxCD OCIRepository and Kustomization resources that were created
-  for preview deployments. FluxCD's pruning will automatically cascade the deletion to namespaces and
-  application resources.
+  This action discovers and deletes Kubernetes resources that were created for preview deployments. 
+  FluxCD's pruning will automatically cascade the deletion to namespaces and application resources.
 
   A kubernetes context must already be configured prior to using this action.
   Checkout the [Create Kubernetes context](../create-context) action to create and configure a kubernetes context.

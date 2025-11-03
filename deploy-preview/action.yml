@@ -1,9 +1,13 @@
 name: 'Deploy Preview'
 description: |
-  Deploy a preview (aka ephemeral) environment to Kubernetes using FluxCD OCIRepository and Kustomization resources.
+  Deploy a preview (aka ephemeral) environment on an EIDP instance.
   This action creates uniquely-named preview deployments that can coexist for multiple concurrent branches/PRs.
 
-  Given an existing tenant definition, this action will roll out an isolated preview deployment of that tenant and its accompanying application(s).
+  In order to use this action, you need an existing EIDP instance and a tenant on that EIDP instance.
+  Given the existing tenant definition, this action will roll out an isolated preview deployment of that tenant and its accompanying application(s).
+  The action deploys resources using FluxCD, which reconciles the Kubernetes manifests from your repository.
+  Your repository must contain Kubernetes manifests, specifically a HelmRelease resource that will be deployed by FluxCD.
+  These manifests must live in the `/manifests/` folder in the root of your repository.
 
   A kubernetes context must already be configured prior to using this action.
   Checkout the [Create Kubernetes context](../create-context) action to create and configure a kubernetes context.
