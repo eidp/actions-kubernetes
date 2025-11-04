@@ -142,7 +142,7 @@ jobs:
         environment: development
         kubernetes-context: ${{ steps.create-context.outputs.context-name }}
         namespace: non-existing-namespace
-        timeout: 30s
+        timeout: 10s
         github-token: ${{ github.token }}
 
     - name: Assert verify-up invalid namespace status
@@ -160,7 +160,7 @@ jobs:
         kubernetes-context: ${{ steps.create-context.outputs.context-name }}
         namespace: apps-actions-kubernetes
         flux-resource: helmrelease/non-existing-release
-        timeout: 30s
+        timeout: 10s
         github-token: ${{ github.token }}
 
     - name: Assert verify-up missing resource status

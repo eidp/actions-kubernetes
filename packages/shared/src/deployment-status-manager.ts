@@ -93,6 +93,10 @@ export class DeploymentStatusManager {
     if (!this.octokit) return null
 
     try {
+      core.debug(
+        `Searching for deployments in environment '${this.environment}'`
+      )
+
       // Get deployments for this environment
       const { data: deployments } =
         await this.octokit.rest.repos.listDeployments({
@@ -101,11 +105,16 @@ export class DeploymentStatusManager {
           environment: this.environment
         })
 
+      core.debug(`Found ${deployments.length} deployment(s) for environment`)
+
       if (deployments.length === 0) {
         return null
       }
 
       // The most recent deployment is the first one (sorted by created_at desc)
+      core.debug(
+        `Using most recent deployment: ${deployments[0].id} (created: ${deployments[0].created_at})`
+      )
       return { id: deployments[0].id }
     } catch (error) {
       core.warning(
