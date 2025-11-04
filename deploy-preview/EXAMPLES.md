@@ -73,7 +73,6 @@ jobs:
           chart-version: '${{ steps.commit-version.outputs.version }}'
           reference: ${{ github.event.number || github.event.issue.number }}
           github-token: ${{ github.token }}
-          timeout: 10m
 
       - name: Verify preview deployment
         id: verify-preview
@@ -86,7 +85,6 @@ jobs:
           flux-resource: 'helmrelease/python-fastapi'
           chart-version: '${{ steps.commit-version.outputs.version }}'
           github-token: ${{ github.token }}
-          timeout: 10m
 
       - name: Teardown preview
         if: |
@@ -99,7 +97,6 @@ jobs:
           kubernetes-context: ${{ steps.create-context.outputs.context-name }}
           reference: ${{ github.event.number || github.event.issue.number }}
           github-token: ${{ github.token }}
-          timeout: 10m
 ```
 
 Replace `<<YOUR_TENANT_NAME>>` with your tenant name on your EIDP instance.

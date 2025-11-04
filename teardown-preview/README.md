@@ -92,7 +92,6 @@ jobs:
           reference: ${{ github.event.number || github.event.issue.number }}
           wait-for-deletion: true
           github-token: ${{ github.token }}
-          timeout: 10m
 ```
 
 ### Bulk cleanup with age filter
@@ -131,7 +130,6 @@ jobs:
           kubernetes-context: ${{ steps.create-context.outputs.context-name }}
           github-token: ${{ github.token }}
           max-age: 7d
-          timeout: 15m
 ```
 
 ### Dry run mode

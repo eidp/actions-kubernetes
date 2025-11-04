@@ -1,6 +1,6 @@
 repos:
   - repo: https://github.com/eidp/actions-common
-    rev: v1.3.0
+    rev: v1.3.3
     hooks:
       - id: generate-action-docs
 
