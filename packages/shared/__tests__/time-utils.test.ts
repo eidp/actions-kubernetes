@@ -1,5 +1,9 @@
 import { describe, it, expect } from 'vitest'
-import { parseAgeToSeconds, calculateAge, formatAge } from '../src/time-utils'
+import {
+  parseAgeToSeconds,
+  calculateAge,
+  formatAge
+} from '../src/time-utils.js'
 
 describe('parseAgeToSeconds', () => {
   it('should parse days correctly', () => {

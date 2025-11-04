@@ -1,7 +1,7 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
-import { getWorkflowRunUrl } from './pr-utils'
-import { STATUS_EMOJI, STATUS_TITLE, STATUS_DESCRIPTION } from './constants'
+import { getWorkflowRunUrl } from './pr-utils.js'
+import { STATUS_EMOJI, STATUS_TITLE, STATUS_DESCRIPTION } from './constants.js'
 
 export interface VerifiedResource {
   name: string

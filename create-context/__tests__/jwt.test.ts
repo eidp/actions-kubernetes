@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseJWTClaims } from '../src/jwt'
+import { parseJWTClaims } from '../src/jwt.js'
 
 describe('JWT parsing', () => {
   it('should parse valid JWT token', () => {

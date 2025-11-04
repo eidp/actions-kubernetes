@@ -1,6 +1,6 @@
 import * as core from '@actions/core'
 import * as k8s from '@kubernetes/client-node'
-import { ConfigMap, KubernetesResource } from './types'
+import { ConfigMap, KubernetesResource } from './types.js'
 
 /**
  * Generic Kubernetes operations client

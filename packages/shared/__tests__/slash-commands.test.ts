@@ -6,7 +6,7 @@ import {
   checkPermissions,
   rejectUnauthorised,
   addReaction
-} from '../src/slash-commands'
+} from '../src/slash-commands.js'
 
 describe('detectSlashCommand', () => {
   beforeEach(() => {

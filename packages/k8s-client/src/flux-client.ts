@@ -1,13 +1,13 @@
 import * as core from '@actions/core'
 import * as k8s from '@kubernetes/client-node'
-import { KubernetesClient } from './kubernetes-client'
+import { KubernetesClient } from './kubernetes-client.js'
 import {
   OCIRepository,
   Kustomization,
   FluxResourceSpec,
   FluxResource,
   DeploymentStatus
-} from './types'
+} from './types.js'
 import { parseTimeout } from '@actions-kubernetes/shared/time-utils'
 import {
   FLUXCD_NAMESPACE,
