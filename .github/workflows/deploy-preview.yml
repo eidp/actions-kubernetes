@@ -13,6 +13,7 @@ jobs:
       id-token: write
       pull-requests: write
       issues: write
+      deployments: write
     environment:
       name: pr-${{ github.event.number || github.ref_name }}
       url: ${{ steps.deploy-preview-verify-up.outputs.url }}
@@ -94,6 +95,7 @@ jobs:
       id-token: write
       pull-requests: write
       issues: write
+      deployments: write
     environment:
       name: pr-${{ github.event.number || github.ref_name }}
     steps:
