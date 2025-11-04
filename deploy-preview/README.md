@@ -77,22 +77,23 @@ on:
   issue_comment:
     types: [created]
 
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+  issues: write
+  id-token: write
+  deployments: write
+concurrency:
+  group: pr-${{ github.event.number || github.event.issue.number }}
+  cancel-in-progress: false
+
 jobs:
   deploy-preview:
     # Only run on PR events or PR comments (not issue comments)
     if: (github.event_name == 'pull_request') || (github.event_name == 'issue_comment' && github.event.issue.pull_request)
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      actions: read
-      pull-requests: write
-      issues: write
-      id-token: write
-      deployments: write
     environment: pr-${{ github.event.number || github.event.issue.number }}
-    concurrency:
-      group: pr-${{ github.event.number || github.event.issue.number }}
-      cancel-in-progress: false
 
     steps:
       # When triggered by slash commands (issue_comment), we need to check out the PR branch
@@ -154,16 +155,6 @@ jobs:
     # Only run on PR events or PR comments (not issue comments)
     if: (github.event_name == 'pull_request') || (github.event_name == 'issue_comment' && github.event.issue.pull_request)
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      actions: read
-      pull-requests: write
-      issues: write
-      id-token: write
-      deployments: write
-    concurrency:
-      group: pr-${{ github.event.number || github.event.issue.number }}
-      cancel-in-progress: false
     steps:
       - name: Teardown preview
         if: |
