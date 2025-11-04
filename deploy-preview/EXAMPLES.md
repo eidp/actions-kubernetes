@@ -12,7 +12,7 @@ on:
     types: [created]
 
 jobs:
-  preview:
+  deploy-preview:
     # Only run on PR events or PR comments (not issue comments)
     if: (github.event_name == 'pull_request') || (github.event_name == 'issue_comment' && github.event.issue.pull_request)
     runs-on: ubuntu-latest
@@ -23,9 +23,7 @@ jobs:
       issues: write
       id-token: write
       deployments: write
-    environment:
-      name: pr-${{ github.event.number || github.event.issue.number }}
-      url: ${{ steps.verify-preview.outputs.url }}
+    environment: pr-${{ github.event.number || github.event.issue.number }}
     concurrency:
       group: pr-${{ github.event.number || github.event.issue.number }}
       cancel-in-progress: false
@@ -86,7 +84,21 @@ jobs:
           flux-resource: 'helmrelease/python-fastapi'
           chart-version: '${{ steps.commit-version.outputs.version }}'
           github-token: ${{ github.token }}
-
+  teardown:
+    # Only run on PR events or PR comments (not issue comments)
+    if: (github.event_name == 'pull_request') || (github.event_name == 'issue_comment' && github.event.issue.pull_request)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: write
+      issues: write
+      id-token: write
+      deployments: write
+    concurrency:
+      group: pr-${{ github.event.number || github.event.issue.number }}
+      cancel-in-progress: false
+    steps:
       - name: Teardown preview
         if: |
           github.event.action == 'closed' ||
