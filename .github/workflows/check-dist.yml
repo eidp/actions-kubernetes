@@ -38,39 +38,13 @@ jobs:
       id: build
       run: pnpm run bundle
 
-    # This will fail the workflow if any of the actions `dist/` directories is different than
-    # expected.
-    - name: Compare Directories
+    - name: Check for uncommitted changes
       id: diff
       run: |
-        # Find all dist directories in action folders
-        DIST_DIRS=$(find . -maxdepth 2 -type d -name dist -not -path "*/node_modules/*")
-
-        if [ -z "$DIST_DIRS" ]; then
-          echo "No dist/ directories found. See status below:"
-          ls -la ./
-          exit 1
-        fi
-
-        echo "Checking dist directories:"
-        echo "$DIST_DIRS"
-        echo ""
-
-        # Check each dist directory for changes
-        HAS_CHANGES=0
-        for dist in $DIST_DIRS; do
-          if [ "$(git diff --ignore-space-at-eol --text "$dist" | wc -l)" -gt "0" ]; then
-            echo "Detected uncommitted changes in $dist:"
-            git diff --ignore-space-at-eol --text "$dist"
-            HAS_CHANGES=1
-          fi
-        done
-
-        if [ $HAS_CHANGES -eq 1 ]; then
+        if ! git diff --exit-code --ignore-space-at-eol --text '*/dist/*'; then
           echo ""
           echo "ERROR: Detected uncommitted changes after build."
           echo "Please run 'pnpm run bundle' and commit the changes."
           exit 1
         fi
-
         echo "All dist directories are up to date!"
