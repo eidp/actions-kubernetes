@@ -1,5 +1,5 @@
 import * as core from '@actions/core'
-import { verifyKubernetesConnectivity } from '@actions-kubernetes/k8s-client'
+import { verifyKubernetesAccess } from '@actions-kubernetes/k8s-client'
 import { verifySpecificResource, discoverURL } from './k8s-verification'
 import { generateSummary } from './summary'
 import { ResourceVerificationResult } from './types'
@@ -44,7 +44,7 @@ async function run(): Promise<void> {
     }
 
     // Verify connectivity with namespace and permission checks
-    const kc = await verifyKubernetesConnectivity(kubernetesContext)
+    const kc = await verifyKubernetesAccess(kubernetesContext)
 
     // Verify deployment
     verificationResults = await verifySpecificResource(

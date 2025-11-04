@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import * as core from '@actions/core'
 import * as k8s from '@kubernetes/client-node'
-import { verifyKubernetesConnectivity } from '../src/k8s-connectivity.js'
+import { verifyKubernetesAccess } from '../src/kubernetes-access'
 
 vi.mock('../src/constants.js', () => ({
   FLUXCD_NAMESPACE: 'infra-fluxcd'
@@ -82,7 +82,7 @@ describe('k8s-connectivity', () => {
         items: []
       })
 
-      const result = await verifyKubernetesConnectivity('test-context')
+      const result = await verifyKubernetesAccess('test-context')
 
       expect(result).toBe(mockKubeConfig)
       expect(mockKubeConfig.loadFromDefault).toHaveBeenCalled()
@@ -110,7 +110,7 @@ describe('k8s-connectivity', () => {
         .mockReturnValue([{ name: 'context-1' }, { name: 'context-2' }])
 
       await expect(
-        verifyKubernetesConnectivity('non-existent-context')
+        verifyKubernetesAccess('non-existent-context')
       ).rejects.toThrow("Context 'non-existent-context' does not exist")
 
       expect(core.error).toHaveBeenCalledWith(
@@ -129,9 +129,7 @@ describe('k8s-connectivity', () => {
         new Error('Unauthorized')
       )
 
-      await expect(
-        verifyKubernetesConnectivity('test-context')
-      ).rejects.toThrow(
+      await expect(verifyKubernetesAccess('test-context')).rejects.toThrow(
         "Cannot connect to the cluster using context 'test-context'"
       )
     })
@@ -149,7 +147,7 @@ describe('k8s-connectivity', () => {
         items: []
       })
 
-      await verifyKubernetesConnectivity('test-context')
+      await verifyKubernetesAccess('test-context')
 
       expect(core.info).toHaveBeenCalledWith(
         '✅ Successfully authenticated as: authenticated user'
@@ -167,9 +165,7 @@ describe('k8s-connectivity', () => {
         forbiddenError
       )
 
-      await expect(
-        verifyKubernetesConnectivity('test-context')
-      ).rejects.toThrow(
+      await expect(verifyKubernetesAccess('test-context')).rejects.toThrow(
         'Insufficient permissions to list OCIRepository resources in namespace infra-fluxcd'
       )
     })
@@ -185,9 +181,7 @@ describe('k8s-connectivity', () => {
         .mockResolvedValueOnce({ items: [] })
         .mockRejectedValueOnce(forbiddenError)
 
-      await expect(
-        verifyKubernetesConnectivity('test-context')
-      ).rejects.toThrow(
+      await expect(verifyKubernetesAccess('test-context')).rejects.toThrow(
         'Insufficient permissions to list Kustomization resources in namespace infra-fluxcd'
       )
     })
@@ -203,9 +197,9 @@ describe('k8s-connectivity', () => {
         serverError
       )
 
-      await expect(
-        verifyKubernetesConnectivity('test-context')
-      ).rejects.toThrow('Internal Server Error')
+      await expect(verifyKubernetesAccess('test-context')).rejects.toThrow(
+        'Internal Server Error'
+      )
     })
 
     it('should re-throw non-403 errors for Kustomization', async () => {
@@ -219,9 +213,9 @@ describe('k8s-connectivity', () => {
         .mockResolvedValueOnce({ items: [] })
         .mockRejectedValueOnce(serverError)
 
-      await expect(
-        verifyKubernetesConnectivity('test-context')
-      ).rejects.toThrow('Internal Server Error')
+      await expect(verifyKubernetesAccess('test-context')).rejects.toThrow(
+        'Internal Server Error'
+      )
     })
 
     it('should handle errors without statusCode property', async () => {
@@ -235,9 +229,9 @@ describe('k8s-connectivity', () => {
         new Error('Generic error')
       )
 
-      await expect(
-        verifyKubernetesConnectivity('test-context')
-      ).rejects.toThrow('Generic error')
+      await expect(verifyKubernetesAccess('test-context')).rejects.toThrow(
+        'Generic error'
+      )
     })
 
     it('should verify both OCIRepository and Kustomization permissions', async () => {
@@ -251,7 +245,7 @@ describe('k8s-connectivity', () => {
         items: []
       })
 
-      await verifyKubernetesConnectivity('test-context')
+      await verifyKubernetesAccess('test-context')
 
       expect(mockCustomApi.listNamespacedCustomObject).toHaveBeenCalledTimes(2)
       expect(mockCustomApi.listNamespacedCustomObject).toHaveBeenCalledWith({

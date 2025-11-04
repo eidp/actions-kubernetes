@@ -2,7 +2,7 @@ import * as core from '@actions/core'
 import * as k8s from '@kubernetes/client-node'
 import { FLUXCD_NAMESPACE } from './constants.js'
 
-export async function verifyKubernetesConnectivity(
+export async function verifyKubernetesAccess(
   kubernetesContext: string
 ): Promise<k8s.KubeConfig> {
   core.startGroup('Verifying Kubernetes connectivity')

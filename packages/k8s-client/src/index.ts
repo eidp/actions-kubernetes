@@ -1,6 +1,6 @@
 export { KubernetesClient } from './kubernetes-client.js'
 export { FluxClient } from './flux-client.js'
-export { verifyKubernetesConnectivity } from './k8s-connectivity.js'
+export { verifyKubernetesAccess } from './kubernetes-access.js'
 export { Labels } from './labels.js'
 export { FLUXCD_NAMESPACE, TENANT_REPLACEMENT_CONFIG } from './constants.js'
 export * from './types.js'

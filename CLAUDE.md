@@ -44,7 +44,7 @@ This uses `@vercel/ncc` to bundle TypeScript into `dist/index.js`.
 Import shared utilities using the scoped package name:
 ```typescript
 import { Labels } from '@actions-kubernetes/shared/constants'
-import { verifyKubernetesConnectivity } from '@actions-kubernetes/shared/k8s-connectivity'
+import { verifyKubernetesAccess } from '@actions-kubernetes/k8s-client'
 ```
 
 ### Documentation

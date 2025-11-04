@@ -11,7 +11,7 @@ import {
 } from '@actions-kubernetes/shared/time-utils'
 import { sanitizeLabelValue } from '@actions-kubernetes/shared/string-utils'
 import {
-  verifyKubernetesConnectivity,
+  verifyKubernetesAccess,
   FluxClient,
   Labels
 } from '@actions-kubernetes/k8s-client'
@@ -97,7 +97,7 @@ async function run(): Promise<void> {
       skippedResources: []
     }
 
-    const kc = await verifyKubernetesConnectivity(inputs.kubernetesContext)
+    const kc = await verifyKubernetesAccess(inputs.kubernetesContext)
 
     if (inputs.reference) {
       await handleTargetedDeletion(inputs, outputs, kc, githubToken, commitSha)

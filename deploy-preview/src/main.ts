@@ -16,7 +16,7 @@ import {
   rejectUnauthorised,
   addReaction
 } from '@actions-kubernetes/shared/slash-commands'
-import { verifyKubernetesConnectivity } from '@actions-kubernetes/k8s-client'
+import { verifyKubernetesAccess } from '@actions-kubernetes/k8s-client'
 import {
   DeploymentCommentManager,
   DeploymentStatus
@@ -165,7 +165,7 @@ async function run(): Promise<void> {
     const slashCommandId = slashCommandResult.commentId
 
     // Verify Kubernetes connectivity
-    const kc = await verifyKubernetesConnectivity(inputs.kubernetesContext)
+    const kc = await verifyKubernetesAccess(inputs.kubernetesContext)
 
     // Read tenant replacement config from ConfigMap
     const { instanceName, clusterName, objectStoreEndpoint } =
