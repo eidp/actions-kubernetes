@@ -43,7 +43,7 @@ To prevent multiple preview deployments for the same PR, it is recommended to ad
 |`ci-prefix-length`   |The number of characters from the reference to include in the CI prefix. Should be sufficient to ensure uniqueness while keeping resource names within Kubernetes limits. Can be max 24 characters.                                                |No      |`16`   |
 |`chart-version`      |Optional chart version override.                                                                                                                                                                                                                   |No      |``     |
 |`timeout`            |The time to wait for the deployment to be completed successfully.                                                                                                                                                                                  |No      |`5m`   |
-|`github-token`       |GitHub token for authentication. Uses GITHUB_TOKEN if not provided. Required permissions: contents:read, pull-requests:write, issues:write.                                                                                                        |No      |``     |
+|`github-token`       |GitHub token for authentication. Uses GITHUB_TOKEN if not provided. Required permissions: contents:read, pull-requests:write, issues:write, deployments: write.                                                                                    |No      |``     |
 
 ## 📤 Outputs
 
@@ -88,9 +88,8 @@ jobs:
       pull-requests: write
       issues: write
       id-token: write
-    environment:
-      name: pr-${{ github.event.number || github.event.issue.number }}
-      url: ${{ steps.verify-preview.outputs.url }}
+      deployments: write
+    environment: pr-${{ github.event.number || github.event.issue.number }}
     concurrency:
       group: pr-${{ github.event.number || github.event.issue.number }}
       cancel-in-progress: false

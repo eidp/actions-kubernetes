@@ -16,16 +16,16 @@ Protection checking is always enabled - PRs with the "keep-preview" label will b
 
 ## 🔧 Inputs
 
-|Name                 |Description                                                                                                                                                   |Required|Default |
-|---------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|--------|--------|
-|`kubernetes-context` |The name of the Kubernetes context to use for teardown.                                                                                                       |Yes     |``      |
-|`reference`          |Target specific preview by reference (PR number, commit SHA, branch). If not provided, discovers all preview deployments.                                     |No      |``      |
-|`ci-prefix-length`   |The number of characters from the reference to include in the CI prefix. Must match the value used in deploy-preview.                                         |No      |`16`    |
-|`wait-for-deletion`  |Wait for resources to be fully deleted before completing.                                                                                                     |No      |`false` |
-|`timeout`            |The time to wait for the deletion to be completed successfully. After the timeout is reached, the job will fail. Example timeout values: 3m, 90s, 2.5m, 2m30s |No      |`5m`    |
-|`dry-run`            |Report what would be deleted without actually deleting.                                                                                                       |No      |`false` |
-|`max-age`            |Maximum age before deletion (e.g., 7d, 48h). Only used for bulk cleanup when reference is not provided.                                                       |No      |``      |
-|`github-token`       |GitHub token for authentication. Uses GITHUB_TOKEN if not provided. Required permissions: contents:read, pull-requests:write, issues:write.                   |No      |``      |
+|Name                 |Description                                                                                                                                                     |Required|Default |
+|---------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|--------|--------|
+|`kubernetes-context` |The name of the Kubernetes context to use for teardown.                                                                                                         |Yes     |``      |
+|`reference`          |Target specific preview by reference (PR number, commit SHA, branch). If not provided, discovers all preview deployments.                                       |No      |``      |
+|`ci-prefix-length`   |The number of characters from the reference to include in the CI prefix. Must match the value used in deploy-preview.                                           |No      |`16`    |
+|`wait-for-deletion`  |Wait for resources to be fully deleted before completing.                                                                                                       |No      |`false` |
+|`timeout`            |The time to wait for the deletion to be completed successfully. After the timeout is reached, the job will fail. Example timeout values: 3m, 90s, 2.5m, 2m30s   |No      |`5m`    |
+|`dry-run`            |Report what would be deleted without actually deleting.                                                                                                         |No      |`false` |
+|`max-age`            |Maximum age before deletion (e.g., 7d, 48h). Only used for bulk cleanup when reference is not provided.                                                         |No      |``      |
+|`github-token`       |GitHub token for authentication. Uses GITHUB_TOKEN if not provided. Required permissions: contents:read, pull-requests:write, issues:write, deployments: write. |No      |``      |
 
 ## 📤 Outputs
 

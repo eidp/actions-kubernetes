@@ -21,6 +21,7 @@ import {
   DeploymentCommentManager,
   DeploymentStatus
 } from '@actions-kubernetes/shared/deployment-comment-manager'
+import { DeploymentStatusManager } from '@actions-kubernetes/shared/deployment-status-manager'
 import { getPRDetails, getPRNumber } from '@actions-kubernetes/shared/pr-utils'
 import { ActionInputs, ResourceNames, SlashCommandResult } from './types'
 
@@ -244,6 +245,17 @@ async function run(): Promise<void> {
           error: errorMessage,
           environment: inputs.environment
         }
+      )
+
+      // Update deployment status to error
+      const deploymentStatusManager = new DeploymentStatusManager(
+        inputs.githubToken,
+        inputs.environment
+      )
+      await deploymentStatusManager.updateDeploymentStatus(
+        'error',
+        undefined,
+        errorMessage
       )
     }
 

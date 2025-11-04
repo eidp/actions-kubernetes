@@ -22,9 +22,8 @@ jobs:
       pull-requests: write
       issues: write
       id-token: write
-    environment:
-      name: pr-${{ github.event.number || github.event.issue.number }}
-      url: ${{ steps.verify-preview.outputs.url }}
+      deployments: write
+    environment: pr-${{ github.event.number || github.event.issue.number }}
     concurrency:
       group: pr-${{ github.event.number || github.event.issue.number }}
       cancel-in-progress: false

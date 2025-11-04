@@ -23,6 +23,7 @@ import {
   addReaction
 } from '@actions-kubernetes/shared/slash-commands'
 import { DeploymentCommentManager } from '@actions-kubernetes/shared/deployment-comment-manager'
+import { DeploymentStatusManager } from '@actions-kubernetes/shared/deployment-status-manager'
 import { getPRDetails, getPRNumber } from '@actions-kubernetes/shared/pr-utils'
 
 async function run(): Promise<void> {
@@ -252,6 +253,17 @@ async function handleTargetedDeletion(
           wasTimeoutTriggered: false,
           environment
         })
+
+        // Mark deployment as inactive
+        const deploymentStatusManager = new DeploymentStatusManager(
+          githubToken,
+          environment
+        )
+        await deploymentStatusManager.updateDeploymentStatus(
+          'inactive',
+          undefined,
+          'Environment torn down'
+        )
       }
     }
   }
@@ -354,6 +366,17 @@ async function handleBulkDeletion(
           age: ageDisplay,
           environment
         })
+
+        // Mark deployment as inactive
+        const deploymentStatusManager = new DeploymentStatusManager(
+          githubToken,
+          environment
+        )
+        await deploymentStatusManager.updateDeploymentStatus(
+          'inactive',
+          undefined,
+          'Environment automatically torn down due to age'
+        )
       }
     }
 

@@ -7,6 +7,7 @@ import {
   DeploymentCommentManager,
   DeploymentStatus
 } from '@actions-kubernetes/shared/deployment-comment-manager'
+import { DeploymentStatusManager } from '@actions-kubernetes/shared/deployment-status-manager'
 import { getPRDetails, getPRNumber } from '@actions-kubernetes/shared/pr-utils'
 import * as github from '@actions/github'
 
@@ -91,6 +92,17 @@ async function run(): Promise<void> {
       }
     )
 
+    // Update deployment status with URL
+    const deploymentStatusManager = new DeploymentStatusManager(
+      githubToken,
+      environment
+    )
+    await deploymentStatusManager.updateDeploymentStatus(
+      'success',
+      url || undefined,
+      'Deployment verified and ready'
+    )
+
     core.info('✅ Deployment verification successful')
   } catch (error) {
     const errorMessage =
@@ -132,6 +144,17 @@ async function run(): Promise<void> {
               }))
             : undefined
       }
+    )
+
+    // Update deployment status to failure
+    const failureDeploymentStatusManager = new DeploymentStatusManager(
+      githubToken,
+      environment
+    )
+    await failureDeploymentStatusManager.updateDeploymentStatus(
+      'failure',
+      undefined,
+      errorMessage
     )
 
     core.setFailed(errorMessage)
