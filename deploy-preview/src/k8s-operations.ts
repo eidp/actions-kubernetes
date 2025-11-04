@@ -4,13 +4,11 @@ import {
   KubernetesClient,
   FluxClient,
   OCIRepository,
-  Kustomization
-} from '@actions-kubernetes/k8s-client'
-import {
+  Kustomization,
+  Labels,
   FLUXCD_NAMESPACE,
   TENANT_REPLACEMENT_CONFIG
-} from '@actions-kubernetes/shared/constants'
-import { Labels } from '@actions-kubernetes/shared/labels'
+} from '@actions-kubernetes/k8s-client'
 import { sanitizeLabelValue } from '@actions-kubernetes/shared/string-utils'
 import * as github from '@actions/github'
 import { TenantsReplacementConfig } from './types'

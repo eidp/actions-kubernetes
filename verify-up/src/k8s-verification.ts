@@ -5,8 +5,8 @@ import {
   KubernetesClient,
   DeploymentStatus
 } from '@actions-kubernetes/k8s-client'
+import { parseDuration } from '@actions-kubernetes/shared/time-utils'
 import { ResourceVerificationResult } from './types'
-import { parseDuration } from './utils'
 
 export async function verifySpecificResource(
   kc: k8s.KubeConfig,

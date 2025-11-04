@@ -2,7 +2,9 @@ import { describe, it, expect } from 'vitest'
 import {
   parseAgeToSeconds,
   calculateAge,
-  formatAge
+  formatAge,
+  parseDuration,
+  parseTimeout
 } from '../src/time-utils.js'
 
 describe('parseAgeToSeconds', () => {
@@ -86,5 +88,94 @@ describe('formatAge', () => {
   it('should handle large values', () => {
     expect(formatAge(604800)).toBe('7d 0h')
     expect(formatAge(691200)).toBe('8d 0h')
+  })
+})
+
+describe('parseDuration', () => {
+  it('should parse minutes correctly', () => {
+    expect(parseDuration('3m')).toBe(180000)
+    expect(parseDuration('5m')).toBe(300000)
+    expect(parseDuration('30m')).toBe(1800000)
+  })
+
+  it('should parse seconds correctly', () => {
+    expect(parseDuration('180s')).toBe(180000)
+    expect(parseDuration('30s')).toBe(30000)
+    expect(parseDuration('1s')).toBe(1000)
+  })
+
+  it('should parse hours correctly', () => {
+    expect(parseDuration('1h')).toBe(3600000)
+    expect(parseDuration('2h')).toBe(7200000)
+    expect(parseDuration('24h')).toBe(86400000)
+  })
+
+  it('should parse milliseconds correctly', () => {
+    expect(parseDuration('1000ms')).toBe(1000)
+    expect(parseDuration('500ms')).toBe(500)
+  })
+
+  it('should parse complex durations', () => {
+    expect(parseDuration('1h30m')).toBe(5400000)
+    expect(parseDuration('7h3m45s')).toBe(25425000)
+    expect(parseDuration('2h15m30s')).toBe(8130000)
+  })
+
+  it('should parse days correctly', () => {
+    expect(parseDuration('1d')).toBe(86400000)
+    expect(parseDuration('2d')).toBe(172800000)
+  })
+
+  it('should handle zero duration', () => {
+    expect(parseDuration('0s')).toBe(0)
+    expect(parseDuration('0m')).toBe(0)
+    expect(parseDuration('0h')).toBe(0)
+  })
+
+  it('should throw error for invalid format', () => {
+    expect(() => parseDuration('invalid')).toThrow('Invalid duration format')
+    expect(() => parseDuration('')).toThrow('Invalid duration format')
+    expect(() => parseDuration('abc')).toThrow('Invalid duration format')
+  })
+
+  it('should throw error for negative duration', () => {
+    expect(() => parseDuration('-5m')).toThrow('Duration cannot be negative')
+    expect(() => parseDuration('-1h')).toThrow('Duration cannot be negative')
+  })
+
+  it('should handle fractional values', () => {
+    expect(parseDuration('1.5h')).toBe(5400000)
+    expect(parseDuration('2.5m')).toBe(150000)
+  })
+
+  it('should handle various formats supported by parse-duration', () => {
+    expect(parseDuration('1 hour')).toBe(3600000)
+    expect(parseDuration('30 seconds')).toBe(30000)
+    expect(parseDuration('5 minutes')).toBe(300000)
+  })
+})
+
+describe('parseTimeout', () => {
+  it('should parse valid durations', () => {
+    expect(parseTimeout('3m')).toBe(180000)
+    expect(parseTimeout('5m')).toBe(300000)
+    expect(parseTimeout('1h')).toBe(3600000)
+    expect(parseTimeout('30s')).toBe(30000)
+  })
+
+  it('should return default 5 minutes for invalid format', () => {
+    expect(parseTimeout('invalid')).toBe(300000)
+    expect(parseTimeout('')).toBe(300000)
+    expect(parseTimeout('xyz')).toBe(300000)
+  })
+
+  it('should return default 5 minutes for negative duration', () => {
+    expect(parseTimeout('-5m')).toBe(300000)
+    expect(parseTimeout('-1h')).toBe(300000)
+  })
+
+  it('should handle complex valid durations', () => {
+    expect(parseTimeout('1h30m')).toBe(5400000)
+    expect(parseTimeout('7h3m45s')).toBe(25425000)
   })
 })

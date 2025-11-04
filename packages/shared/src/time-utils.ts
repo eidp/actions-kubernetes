@@ -1,3 +1,5 @@
+import parse from 'parse-duration'
+
 /**
  * Parse age string to seconds
  * @param ageStr - Age string in format like '7d', '48h', or '30m'
@@ -55,31 +57,38 @@ export function formatAge(ageSeconds: number): string {
 }
 
 /**
- * Parse timeout string to milliseconds using parse-duration
+ * Parse duration string to milliseconds
+ * @param duration - Duration string (e.g., '3m', '180s', '1h30m', '7h3m45s')
+ * @returns Duration in milliseconds
+ * @throws Error if duration format is invalid or negative
+ */
+export function parseDuration(duration: string): number {
+  const result = parse(duration)
+
+  if (result === null || result === undefined) {
+    throw new Error(
+      `Invalid duration format: ${duration}. Expected format: duration string (e.g., 3m, 180s, 1h30m, 7h3m45s)`
+    )
+  }
+
+  if (result < 0) {
+    throw new Error(
+      `Invalid duration: ${duration}. Duration cannot be negative`
+    )
+  }
+
+  return result
+}
+
+/**
+ * Parse timeout string to milliseconds with default fallback
  * @param timeout - Timeout string (e.g., '5m', '30s', '2h')
  * @returns Timeout in milliseconds, defaults to 5 minutes if parsing fails
  */
 export function parseTimeout(timeout: string): number {
-  // Use dynamic import to avoid adding parse-duration to shared package if not needed
-  // For now, we'll use a simple implementation that matches common patterns
-  const match = timeout.match(/^(\d+)(ms|s|m|h)$/)
-  if (!match) {
+  try {
+    return parseDuration(timeout)
+  } catch {
     return 300000 // Default to 5 minutes
-  }
-
-  const value = parseInt(match[1], 10)
-  const unit = match[2]
-
-  switch (unit) {
-    case 'ms':
-      return value
-    case 's':
-      return value * 1000
-    case 'm':
-      return value * 60 * 1000
-    case 'h':
-      return value * 60 * 60 * 1000
-    default:
-      return 300000 // Default to 5 minutes
   }
 }

@@ -1,5 +1,5 @@
 import * as core from '@actions/core'
-import { verifyKubernetesConnectivity } from '@actions-kubernetes/shared/k8s-connectivity'
+import { verifyKubernetesConnectivity } from '@actions-kubernetes/k8s-client'
 import { verifySpecificResource, discoverURL } from './k8s-verification'
 import { generateSummary } from './summary'
 import { ResourceVerificationResult } from './types'

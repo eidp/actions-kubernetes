@@ -10,8 +10,11 @@ import {
   parseTimeout
 } from '@actions-kubernetes/shared/time-utils'
 import { sanitizeLabelValue } from '@actions-kubernetes/shared/string-utils'
-import { verifyKubernetesConnectivity } from '@actions-kubernetes/shared/k8s-connectivity'
-import { FluxClient } from '@actions-kubernetes/k8s-client'
+import {
+  verifyKubernetesConnectivity,
+  FluxClient,
+  Labels
+} from '@actions-kubernetes/k8s-client'
 import { generateSummary } from './summary'
 import {
   detectSlashCommand,
@@ -20,7 +23,6 @@ import {
   addReaction
 } from '@actions-kubernetes/shared/slash-commands'
 import { DeploymentCommentManager } from '@actions-kubernetes/shared/deployment-comment-manager'
-import { Labels } from '@actions-kubernetes/shared/labels'
 import { getPRDetails, getPRNumber } from '@actions-kubernetes/shared/pr-utils'
 
 async function run(): Promise<void> {

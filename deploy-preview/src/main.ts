@@ -16,7 +16,7 @@ import {
   rejectUnauthorised,
   addReaction
 } from '@actions-kubernetes/shared/slash-commands'
-import { verifyKubernetesConnectivity } from '@actions-kubernetes/shared/k8s-connectivity'
+import { verifyKubernetesConnectivity } from '@actions-kubernetes/k8s-client'
 import {
   DeploymentCommentManager,
   DeploymentStatus

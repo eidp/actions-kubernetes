@@ -9,12 +9,9 @@ import {
   DeploymentStatus
 } from './types.js'
 import { parseTimeout } from '@actions-kubernetes/shared/time-utils'
-import {
-  FLUXCD_NAMESPACE,
-  ANSI_RED,
-  ANSI_RESET
-} from '@actions-kubernetes/shared/constants'
-import { Labels } from '@actions-kubernetes/shared/labels'
+import { ANSI_RED, ANSI_RESET } from '@actions-kubernetes/shared/constants'
+import { FLUXCD_NAMESPACE } from './constants.js'
+import { Labels } from './labels.js'
 
 // Watch retry configuration
 const INITIAL_RETRY_DELAY_MS = 1000
