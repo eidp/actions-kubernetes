@@ -135,6 +135,6 @@ jobs:
     steps:
     - name: Check Workflow Status
       id: check-workflow-status
-      uses: eidp/actions-common/check-workflow-status@fc80856b95e220460cf07cb64c6e8f2e9192b5a4 # v1.3.0
+      uses: eidp/actions-common/check-workflow-status@8fb490fa25c3ae68beddc97b2430e5c586dc79e1 # v1.3.3
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
