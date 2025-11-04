@@ -14,9 +14,7 @@ jobs:
       pull-requests: write
       issues: write
       deployments: write
-    environment:
-      name: pr-${{ github.event.number || github.ref_name }}
-      url: ${{ steps.deploy-preview-verify-up.outputs.url }}
+    environment: pr-${{ github.event.number || github.ref_name }}
     outputs:
       oci-repository-name: ${{ steps.deploy-preview.outputs.oci-repository-name }}
       kustomization-name: ${{ steps.deploy-preview.outputs.kustomization-name }}
