@@ -82,7 +82,7 @@ jobs:
           environment: 'pr-${{ github.event.number || github.event.issue.number }}'
           kubernetes-context: ${{ steps.create-context.outputs.context-name }}
           namespace: ${{ steps.deploy-preview.outputs.namespace }}
-          flux-resource: 'helmrelease/python-fastapi'
+          flux-resource: 'helmrelease/<<YOUR_HELM_RELEASE_NAME>>' # e.g. helmrelease/my-app
           chart-version: '${{ steps.commit-version.outputs.version }}'
           github-token: ${{ github.token }}
   teardown:
@@ -110,7 +110,8 @@ jobs:
           github-token: {{ '${{ github.token }}' }}
 ```
 
-Replace `<<YOUR_TENANT_NAME>>` with your tenant name on your EIDP instance.
+Replace `<<YOUR_TENANT_NAME>>` with your tenant name on your EIDP instance 
+and `<<YOUR_HELM_RELEASE_NAME>>` with the name of the Helm release that deploys your application.
 
 ## Slash command integration
 
