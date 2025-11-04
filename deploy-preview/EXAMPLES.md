@@ -86,21 +86,28 @@ jobs:
           chart-version: '${{ steps.commit-version.outputs.version }}'
           github-token: ${{ github.token }}
   teardown:
-    # Only run on PR events or PR comments (not issue comments)
-    if: (github.event_name == 'pull_request') || (github.event_name == 'issue_comment' && github.event.issue.pull_request)
+    # Run when: PR is closed, issue comment on PR, or PR has 'dependencies' label
+    if: |
+      (github.event_name == 'pull_request' && github.event.action == 'closed') ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request) ||
+      (github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'dependencies'))
     runs-on: ubuntu-latest
     steps:
-      - name: Teardown preview
-        if: |
-          github.event.action == 'closed' ||
-          github.event_name == 'issue_comment' ||
-          contains(github.event.pull_request.labels.*.name, 'dependencies')
-
-        uses: eidp/actions-kubernetes/teardown-preview@v0
+      - name: Create Kubernetes context
+        id: create-context
+        uses: eidp/actions-kubernetes/create-context@798805fe9cbaa8c73ebc4a7d77b10e7c6f49ffd4
         with:
-          kubernetes-context: ${{ steps.create-context.outputs.context-name }}
-          reference: ${{ github.event.number || github.event.issue.number }}
-          github-token: ${{ github.token }}
+          cluster: development
+          api-server: {{ '${{ vars.K8S_API_SERVER_DEVELOPMENT }}' }}
+          certificate-authority-data:
+            {{ '${{ secrets.K8S_CERTIFICATE_AUTHORITY_DATA_DEVELOPMENT }}' }}
+
+      - name: Teardown preview
+        uses: eidp/actions-kubernetes/teardown-preview@798805fe9cbaa8c73ebc4a7d77b10e7c6f49ffd4
+        with:
+          kubernetes-context: {{ '${{ steps.create-context.outputs.context-name }}' }}
+          reference: {{ '${{ github.event.number || github.event.issue.number }}' }}
+          github-token: {{ '${{ github.token }}' }}
 ```
 
 Replace `<<YOUR_TENANT_NAME>>` with your tenant name on your EIDP instance.
