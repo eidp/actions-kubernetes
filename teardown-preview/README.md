@@ -113,6 +113,7 @@ jobs:
       contents: read
       id-token: write
       pull-requests: read
+      deployments: write
 
     steps:
       - name: Create Kubernetes context
