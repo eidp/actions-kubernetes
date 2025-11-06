@@ -9,9 +9,7 @@ describe('JWT parsing', () => {
       name: 'Test User',
       iat: 1516239022
     }
-    const payloadBase64 = Buffer.from(JSON.stringify(mockPayload)).toString(
-      'base64'
-    )
+    const payloadBase64 = btoa(JSON.stringify(mockPayload))
     const mockToken = `header.${payloadBase64}.signature`
 
     const claims = parseJWTClaims(mockToken)
