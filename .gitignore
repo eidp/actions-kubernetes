@@ -10,3 +10,29 @@ Thumbs.db
 # IntelliJ
 .idea
 out/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# pnpm
+.pnpm-store/
+.pnpm-debug.log
+
+# TypeScript
+*.tsbuildinfo
+
+# Testing
+coverage/
+junit/
+
+# Build artifacts (except committed dist folders)
+# Note: create-context/dist/ IS committed
+!create-context/dist/
+
+# IDE
+.vscode/
+*.swp
+*.swo

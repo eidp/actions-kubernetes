@@ -1,0 +1,7 @@
+packages:
+  - 'packages/*'
+  - 'create-context'
+  - 'deploy-preview'
+  - 'teardown-preview'
+  - 'verify-up'
+  - 'packages/k8s-client'

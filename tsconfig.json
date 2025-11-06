@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ES2022",
+    "moduleResolution": "Bundler",
+    "outDir": "./dist",
+    "baseUrl": ".",
+    "paths": {
+      "@actions-kubernetes/shared/*": ["packages/shared/src/*"]
+    }
+  },
+  "exclude": [
+    "__fixtures__",
+    "__tests__",
+    "coverage",
+    "dist",
+    "node_modules",
+    "template",
+    "requirements"
+  ],
+  "include": [
+    "create-context/src",
+    "deploy-preview/src",
+    "teardown-preview/src",
+    "verify-up/src",
+    "packages/shared/src",
+    "packages/k8s-client/src"
+  ]
+}

@@ -1,0 +1,190 @@
+name: deploy-preview
+
+on:
+  pull_request:
+  issue_comment:
+    types: [created]
+
+jobs:
+  test-deploy-preview:
+    runs-on: kubernetes-runner
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+      issues: write
+      deployments: write
+    environment: pr-${{ github.event.number || github.ref_name }}
+    outputs:
+      oci-repository-name: ${{ steps.deploy-preview.outputs.oci-repository-name }}
+      kustomization-name: ${{ steps.deploy-preview.outputs.kustomization-name }}
+      namespace: ${{ steps.deploy-preview.outputs.namespace }}
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+    - name: Create Kubernetes context
+      id: create-context
+      uses: ./create-context
+      with:
+        cluster: development
+        api-server: ${{ vars.K8S_API_SERVER_DEVELOPMENT }}
+        certificate-authority-data:
+          ${{ secrets.K8S_CERTIFICATE_AUTHORITY_DATA_DEVELOPMENT }}
+        print-jwt-claims: 'true'
+
+    - name: Install kubectl
+      uses: azure/setup-kubectl@776406bce94f63e41d621b960d78ee25c8b76ede # v4.0.1
+
+    - name: 'deploy-preview'
+      id: deploy-preview
+      uses: ./deploy-preview
+      with:
+        environment: 'pr-${{ github.event.number || github.event.issue.number || github.ref_name }}'
+        kubernetes-context: ${{ steps.create-context.outputs.context-name }}
+        # We are deliberately using an older chart version here to test the action's ability to deploy a custom chart version.
+        chart-version: '0.4.0'
+        tenant-name: actions-kubernetes
+        reference: ${{ github.event.number || github.event.issue.number || github.ref_name }}
+        github-token: ${{ github.token }}
+        timeout: 5m
+
+    - name: Assert deploy-preview happy flow status
+      uses: nick-fields/assert-action@aa0067e01f0f6545c31755d6ca128c5a3a14f6bf # v2.0.0
+      with:
+        expected: success
+        actual: ${{ steps.deploy-preview.outcome }}
+
+    - name: Assert deploy-preview outputs exist
+      uses: nick-fields/assert-action@aa0067e01f0f6545c31755d6ca128c5a3a14f6bf # v2.0.0
+      with:
+        expected: true
+        actual:
+          ${{ steps.deploy-preview.outputs.oci-repository-name != '' &&
+          steps.deploy-preview.outputs.kustomization-name != '' &&
+          steps.deploy-preview.outputs.ci-prefix != '' }}
+
+    - name: Verify preview resources exist
+      run: |
+        echo "Verifying OCIRepository exists..."
+        kubectl get ocirepository ${{ steps.deploy-preview.outputs.oci-repository-name }} -n infra-fluxcd
+
+        echo "Verifying Kustomization exists..."
+        kubectl get kustomization ${{ steps.deploy-preview.outputs.kustomization-name }} -n infra-fluxcd
+
+        echo "✅ All preview resources verified"
+
+    - name: 'Verify preview deployment successful'
+      id: deploy-preview-verify-up
+      uses: ./verify-up
+      with:
+        environment: 'pr-${{ github.event.number || github.event.issue.number || github.ref_name }}'
+        kubernetes-context: ${{ steps.create-context.outputs.context-name }}
+        namespace: ${{ steps.deploy-preview.outputs.namespace }}
+        flux-resource: 'helmrelease/echo-server-release'
+        chart-version: '0.4.0'
+        github-token: ${{ github.token }}
+
+  test-teardown-preview:
+    needs: test-deploy-preview
+    runs-on: kubernetes-runner
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+      issues: write
+      deployments: write
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+    - name: Create Kubernetes context
+      id: create-context
+      uses: ./create-context
+      with:
+        cluster: development
+        api-server: ${{ vars.K8S_API_SERVER_DEVELOPMENT }}
+        certificate-authority-data:
+          ${{ secrets.K8S_CERTIFICATE_AUTHORITY_DATA_DEVELOPMENT }}
+        print-jwt-claims: 'true'
+
+    - name: Install kubectl
+      uses: azure/setup-kubectl@776406bce94f63e41d621b960d78ee25c8b76ede # v4.0.1
+
+    - name: 'Teardown Preview dry-run'
+      id: teardown-preview-dry-run
+      uses: ./teardown-preview
+      with:
+        kubernetes-context: ${{ steps.create-context.outputs.context-name }}
+        reference: ${{ github.event.number || github.event.issue.number || github.ref_name }}
+        github-token: ${{ github.token }}
+        dry-run: 'true'
+
+    - name: Assert teardown preview dry-run outputs
+      uses: nick-fields/assert-action@aa0067e01f0f6545c31755d6ca128c5a3a14f6bf # v2.0.0
+      with:
+        expected: 1
+        actual: ${{ steps.teardown-preview-dry-run.outputs.deleted-count }}
+
+    - name: 'Teardown Preview bulk dry-run'
+      id: teardown-preview-bulk-dry-run
+      uses: ./teardown-preview
+      with:
+        kubernetes-context: ${{ steps.create-context.outputs.context-name }}
+        dry-run: 'true'
+        github-token: ${{ github.token }}
+
+    - name: Assert teardown preview bulk dry-run outputs
+      uses: nick-fields/assert-action@aa0067e01f0f6545c31755d6ca128c5a3a14f6bf # v2.0.0
+      with:
+        expected: true
+        # We need to validate if the deleted-count is at least 1, as there might be other previews envs present from other PRs.
+        actual: ${{ steps.teardown-preview-bulk-dry-run.outputs.deleted-count >= 1 }}
+
+    - name: 'Teardown Preview'
+      id: teardown-preview
+      uses: ./teardown-preview
+      with:
+        kubernetes-context: ${{ steps.create-context.outputs.context-name }}
+        reference: ${{ github.event.number || github.event.issue.number || github.ref_name }}
+        wait-for-deletion: 'true'
+        github-token: ${{ github.token }}
+
+    - name: 'Verify that preview deployment resources do not exist anymore'
+      run: |
+        set -e
+
+        echo "Verifying OCIRepository is deleted..."
+        if kubectl get ocirepository ${{ needs.test-deploy-preview.outputs.oci-repository-name }} -n infra-fluxcd &>/dev/null; then
+          echo "❌ OCIRepository '${{ needs.test-deploy-preview.outputs.oci-repository-name }}' still exists"
+          exit 1
+        fi
+        echo "✅ OCIRepository deleted"
+
+        echo "Verifying Kustomization is deleted..."
+        if kubectl get kustomization ${{ needs.test-deploy-preview.outputs.kustomization-name }} -n infra-fluxcd &>/dev/null; then
+          echo "❌ Kustomization '${{ needs.test-deploy-preview.outputs.kustomization-name }}' still exists"
+          exit 1
+        fi
+        echo "✅ Kustomization deleted"
+
+        echo "Verifying preview namespace is deleted..."
+        if kubectl get namespace ${{ needs.test-deploy-preview.outputs.namespace }} &>/dev/null; then
+          echo "❌ Namespace '${{ needs.test-deploy-preview.outputs.namespace }}' still exists"
+          exit 1
+        fi
+
+        echo "✅ All preview resources successfully deleted"
+
+  check-workflow-status:
+    runs-on: kubernetes-runner
+    if: github.event_name != 'issue_comment'
+    permissions:
+      contents: read
+      actions: read
+    steps:
+    - name: Check Workflow Status
+      id: check-workflow-status
+      uses: eidp/actions-common/check-workflow-status@82bb2cfb07c831032efe550b99659804b2625fd2 # v1.2.1
+      with:
+        github-token: ${{ github.token }}

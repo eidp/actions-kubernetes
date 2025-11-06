@@ -1,0 +1,73 @@
+name: 'Teardown Preview'
+description: |
+  Teardown preview environments on an EIDP instance deployed by the deploy-preview action.
+
+  This action discovers and **deletes** the Kubernetes resources that were created for the preview deployment.
+  FluxCD's pruning will automatically cascade the deletion to application resources and other related resources.
+
+  A kubernetes context must already be configured prior to using this action.
+  Checkout the [Create Kubernetes context](../create-context) action to create and configure a kubernetes context.
+
+  This action supports both targeted cleanup (specific preview) and bulk cleanup (multiple previews).
+  It can be used in PR close workflows or scheduled cleanup jobs.
+
+  Protection checking is always enabled - PRs with the "keep-preview" label will be skipped. Requires GITHUB_TOKEN.
+
+author: EIDP
+branding:
+  color: 'red'
+  icon: 'cloud-off'
+
+inputs:
+  kubernetes-context:
+    description: 'The name of the Kubernetes context to use for teardown.'
+    required: true
+    default: ''
+  reference:
+    description:
+      'Target specific preview by reference (PR number, commit SHA, branch). If
+      not provided, discovers all preview deployments.'
+    required: false
+    default: ''
+  ci-prefix-length:
+    description:
+      'The number of characters from the reference to include in the CI prefix.
+      Must match the value used in deploy-preview.'
+    required: false
+    default: '16'
+  wait-for-deletion:
+    description: 'Wait for resources to be fully deleted before completing.'
+    required: false
+    default: 'false'
+  timeout:
+    description: 'The time to wait for the deletion to be completed successfully. After the timeout is reached, the job will fail. Example timeout values: 3m, 90s, 2.5m, 2m30s'
+    required: false
+    default: '5m'
+  dry-run:
+    description: 'Report what would be deleted without actually deleting.'
+    required: false
+    default: 'false'
+  max-age:
+    description:
+      'Maximum age before deletion (e.g., 7d, 48h). Only used for bulk cleanup
+      when reference is not provided.'
+    required: false
+    default: ''
+  github-token:
+    description: 'GitHub token for authentication. Uses GITHUB_TOKEN if not provided. Required permissions: contents:read, pull-requests:write, issues:write, deployments: write.'
+    required: false
+    default: ''
+
+outputs:
+  deleted-count:
+    description: 'Number of preview deployments deleted.'
+  deleted-resources:
+    description: 'JSON array of deleted resource names.'
+  skipped-count:
+    description: 'Number of previews skipped (protected or already gone).'
+  skipped-resources:
+    description: 'JSON array of skipped resource names with reasons.'
+
+runs:
+  using: 'node24'
+  main: 'dist/index.js'

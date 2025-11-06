@@ -5,12 +5,49 @@ on:
     branches:
     - main
   pull_request:
-    branches:
-    - main
 
 jobs:
-  test:
+  test-typescript:
     runs-on: kubernetes-runner
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4.2.0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+      with:
+        node-version-file: .node-version
+        cache: pnpm
+
+    - name: Install Dependencies
+      run: pnpm install --frozen-lockfile
+
+    - name: Check Format
+      id: format-check
+      run: pnpm run format:check
+
+    - name: Lint
+      id: lint
+      run: pnpm run lint
+
+    - name: Test
+      id: test
+      run: pnpm run test:ci
+
+    - name: Test Report
+      uses: dorny/test-reporter@dc3a92680fcc15842eef52e8c4606ea7ce6bd3f3 # v2.1.1
+      if: ${{ !cancelled() }}
+      with:
+        name: Vitest tests
+        path: junit/test-results.xml
+        reporter: jest-junit
+
+  test-create-context:
+    runs-on: kubernetes-runner
+    if: github.event_name != 'issue_comment'
     permissions:
       contents: read
       id-token: write
@@ -19,12 +56,17 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
 
-    - uses: ./create-context
+    - name: Install kubectl
+      uses: azure/setup-kubectl@776406bce94f63e41d621b960d78ee25c8b76ede # v4.0.1
+
+    - name: Create Kubernetes context
       id: create-context
+      uses: ./create-context
       with:
-        environment: development
+        cluster: development
         api-server: ${{ vars.K8S_API_SERVER_DEVELOPMENT }}
         certificate-authority-data: ${{ secrets.K8S_CERTIFICATE_AUTHORITY_DATA_DEVELOPMENT }}
+        print-jwt-claims: 'true'
 
     - name: Verify context created
       id: verify-context
@@ -49,7 +91,7 @@ jobs:
         if ! kubectl auth whoami &>/dev/null; then
           echo "❌ Cannot connect to cluster"
           exit 1
-        fi        
+        fi
         echo "✅ Successfully connected to cluster"
         echo "Authenticated as:"
         kubectl auth whoami
@@ -69,14 +111,39 @@ jobs:
         expected: success
         actual: ${{ steps.create-context.outcome }}
 
-    - name: "verify-up: invalid namespace"
+  test-verify-up:
+    runs-on: kubernetes-runner
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: write
+    environment: development
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+    - name: Create Kubernetes context
+      id: create-context
+      uses: ./create-context
+      with:
+        cluster: development
+        api-server: ${{ vars.K8S_API_SERVER_DEVELOPMENT }}
+        certificate-authority-data: ${{ secrets.K8S_CERTIFICATE_AUTHORITY_DATA_DEVELOPMENT }}
+        print-jwt-claims: 'true'
+
+    - name: Install kubectl
+      uses: azure/setup-kubectl@776406bce94f63e41d621b960d78ee25c8b76ede # v4.0.1
+
+    - name: 'verify-up: invalid namespace'
       id: verify-up-invalid-namespace
       uses: ./verify-up
       continue-on-error: true
       with:
+        environment: development
         kubernetes-context: ${{ steps.create-context.outputs.context-name }}
         namespace: non-existing-namespace
-        timeout: 30s
+        timeout: 10s
+        github-token: ${{ github.token }}
 
     - name: Assert verify-up invalid namespace status
       uses: nick-fields/assert-action@aa0067e01f0f6545c31755d6ca128c5a3a14f6bf # v2.0.0
@@ -84,15 +151,17 @@ jobs:
         expected: failure
         actual: ${{ steps.verify-up-invalid-namespace.outcome }}
 
-    - name: "verify-up: missing resource"
+    - name: 'verify-up: missing resource'
       id: verify-up-missing-resource
       uses: ./verify-up
       continue-on-error: true
       with:
+        environment: development
         kubernetes-context: ${{ steps.create-context.outputs.context-name }}
         namespace: apps-actions-kubernetes
         flux-resource: helmrelease/non-existing-release
-        timeout: 30s
+        timeout: 10s
+        github-token: ${{ github.token }}
 
     - name: Assert verify-up missing resource status
       uses: nick-fields/assert-action@aa0067e01f0f6545c31755d6ca128c5a3a14f6bf # v2.0.0
@@ -100,32 +169,21 @@ jobs:
         expected: failure
         actual: ${{ steps.verify-up-missing-resource.outcome }}
 
-    - name: "verify-up: with flux resource (happy-flow)"
+    - name: 'verify-up: with flux resource (happy-flow)'
       id: verify-up-with-resource
       uses: ./verify-up
       with:
+        environment: development
         kubernetes-context: ${{ steps.create-context.outputs.context-name }}
         namespace: apps-actions-kubernetes
         flux-resource: helmrelease/echo-server-release
+        github-token: ${{ github.token }}
 
     - name: Assert verify-up happy flow status
       uses: nick-fields/assert-action@aa0067e01f0f6545c31755d6ca128c5a3a14f6bf # v2.0.0
       with:
         expected: success
         actual: ${{ steps.verify-up-with-resource.outcome }}
-
-    - name: "verify-up: no flux resource (happy-flow)"
-      id: verify-up-no-flux-resource
-      uses: ./verify-up
-      with:
-        kubernetes-context: ${{ steps.create-context.outputs.context-name }}
-        namespace: apps-actions-kubernetes
-
-    - name: Assert verify-up happy flow status
-      uses: nick-fields/assert-action@aa0067e01f0f6545c31755d6ca128c5a3a14f6bf # v2.0.0
-      with:
-        expected: success
-        actual: ${{ steps.verify-up-no-flux-resource.outcome }}
 
   check-workflow-status:
     runs-on: kubernetes-runner
@@ -137,4 +195,4 @@ jobs:
       id: check-workflow-status
       uses: eidp/actions-common/check-workflow-status@8fb490fa25c3ae68beddc97b2430e5c586dc79e1 # v1.3.3
       with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
+        github-token: ${{ github.token }}

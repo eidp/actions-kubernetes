@@ -1,0 +1,34 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "allowJs": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@actions-kubernetes/shared/*": ["packages/shared/src/*"]
+    }
+  },
+  "exclude": ["dist", "node_modules", "template", "requirements"],
+  "include": [
+    "__fixtures__",
+    "__tests__",
+    "__mocks__",
+    "create-context/src",
+    "create-context/__tests__",
+    "deploy-preview/src",
+    "deploy-preview/__tests__",
+    "packages/shared/src",
+    "packages/shared/__tests__",
+    "packages/k8s-client/src",
+    "packages/k8s-client/__tests__",
+    "teardown-preview/src",
+    "teardown-preview/__tests__",
+    "verify-up/src",
+    "verify-up/__tests__",
+    "eslint.config.mjs",
+    "vitest.config.ts",
+    "vitest.setup.ts",
+    "rollup.config.ts"
+  ]
+}

@@ -22,7 +22,7 @@ changelog:
     - bug
   - title: Other Changes 📝
     labels:
-    - "*"
+    - '*'
     exclude:
       labels:
       - dependencies

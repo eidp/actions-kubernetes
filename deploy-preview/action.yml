@@ -1,0 +1,84 @@
+name: 'Deploy Preview'
+description: |
+  Deploy a preview (aka ephemeral) environment on an EIDP instance.
+  This action creates uniquely-named preview deployments that can coexist for multiple concurrent branches/PRs.
+
+  In order to use this action, you need an existing EIDP instance and a tenant on that EIDP instance.
+  Given the existing tenant definition, this action will roll out an isolated preview deployment of that tenant and its accompanying application(s).
+  The action deploys resources using FluxCD, which reconciles the Kubernetes manifests from your repository.
+  Your repository must contain Kubernetes manifests, specifically a HelmRelease resource that will be deployed by FluxCD.
+  These manifests must live in the `/manifests/` folder in the root of your repository.
+
+  A kubernetes context must already be configured prior to using this action.
+  Checkout the [Create Kubernetes context](../create-context) action to create and configure a kubernetes context.
+
+  This action is intended to be used in pull request workflows to provide preview environments for testing changes before merging.
+  After the pull request is closed/merged, the preview deployment can be cleaned up using the [Teardown Preview](../teardown-preview) action.
+
+  To show the preview deployment URL in the pull request, use the `preview-url` output of this action and add it to the `environment` key of the workflow job.
+
+  ```yaml
+  environment:
+    name: pr-\$\{\{ github.event.number \}\}
+    url: \$\{\{ steps.deploy-preview.outputs.preview-url \}\}
+  ```
+
+  To prevent multiple preview deployments for the same PR, it is recommended to add a workflow-level or job-level concurrency group:
+
+  ```yaml
+    concurrency:
+      group: pr-\$\{\{ github.event.number \}\}
+      cancel-in-progress: false
+  ```
+
+author: EIDP
+branding:
+  color: 'blue'
+  icon: 'cloud-upload'
+
+inputs:
+  environment:
+    description: 'The github environment used to deploy to (e.g. `pr-\$\{\{ github.event.pr \}\}`).'
+    required: true
+    default: ''
+  kubernetes-context:
+    description: 'The name of the Kubernetes context to use for deployment.'
+    required: true
+    default: ''
+  tenant-name:
+    description: 'The tenant name used to identify the tenant definition in the OCI repository.'
+    required: true
+    default: ''
+  reference:
+    description: 'A reference used to uniquely identify this preview environment. Among other things, it is used to generate a resource name prefix. Typically this would be the Pull Request number (`github.pr.number`) or branch reference (`github.branch_ref`).'
+    required: true
+  ci-prefix-length:
+    description: 'The number of characters from the reference to include in the CI prefix. Should be sufficient to ensure uniqueness while keeping resource names within Kubernetes limits. Can be max 24 characters.'
+    required: false
+    default: '16'
+  chart-version:
+    description: 'Optional chart version override.'
+    required: false
+    default: ''
+  timeout:
+    description: 'The time to wait for the deployment to be completed successfully.'
+    required: false
+    default: '5m'
+  github-token:
+    description: 'GitHub token for authentication. Uses GITHUB_TOKEN if not provided. Required permissions: contents:read, pull-requests:write, issues:write, deployments: write.'
+    required: false
+    default: ''
+
+outputs:
+  oci-repository-name:
+    description: 'The name of the created OCIRepository resource.'
+  kustomization-name:
+    description: 'The name of the created Kustomization resource.'
+  namespace:
+    description: 'The target namespace for the deployment.'
+  ci-prefix:
+    description: 'The generated CI prefix used for resource naming.'
+
+runs:
+  using: 'node24'
+  main: 'dist/index.js'

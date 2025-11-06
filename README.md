@@ -9,6 +9,8 @@ This repository contains Kubernetes specific actions.
 The following GitHub Actions are available in this repository:
 
 - [create-context](create-context/README.md)
+- [deploy-preview](deploy-preview/README.md)
+- [teardown-preview](teardown-preview/README.md)
 - [verify-up](verify-up/README.md)
 
 <!-- END ACTIONS -->
@@ -17,8 +19,9 @@ The following GitHub Actions are available in this repository:
 
 ### Pre-commit hooks
 
-To ensure code quality and consistency, this repository uses [pre-commit](https://pre-commit.com/) hooks. Make sure to
-install the pre-commit hooks by running:
+To ensure code quality and consistency, this repository uses
+[pre-commit](https://pre-commit.com/) hooks. Make sure to install the pre-commit
+hooks by running:
 
 ```bash
 pre-commit install

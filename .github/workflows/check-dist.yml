@@ -1,0 +1,50 @@
+name: check-transpiled-javascript
+
+on:
+  pull_request:
+    branches:
+    - main
+  push:
+    branches:
+    - main
+
+permissions:
+  contents: read
+
+jobs:
+  check-dist:
+    name: Check compiled actions dist/ folders
+    runs-on: kubernetes-runner
+
+    steps:
+    - name: Checkout
+      id: checkout
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+    - name: Setup pnpm
+      uses: pnpm/action-setup@a3252b78c470c02df07e9d59298aecedc3ccdd6d # v4.0.0
+
+    - name: Setup Node.js
+      uses: actions/setup-node@2028fbc5c25fe9cf00d9f06a71cc4710d4507903 # v6.0.0
+      with:
+        node-version-file: .node-version
+        cache: pnpm
+
+    - name: Install Dependencies
+      id: install
+      run: pnpm install --frozen-lockfile
+
+    - name: Build actions
+      id: build
+      run: pnpm run bundle
+
+    - name: Check for uncommitted changes
+      id: diff
+      run: |
+        if ! git diff --exit-code --ignore-space-at-eol --text '*/dist/*'; then
+          echo ""
+          echo "ERROR: Detected uncommitted changes after build."
+          echo "Please run 'pnpm run bundle' and commit the changes."
+          exit 1
+        fi
+        echo "All dist directories are up to date!"
