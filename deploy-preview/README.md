@@ -93,7 +93,9 @@ jobs:
     # Only run on PR events or PR comments (not issue comments)
     if: (github.event_name == 'pull_request') || (github.event_name == 'issue_comment' && github.event.issue.pull_request)
     runs-on: ubuntu-latest
-    environment: pr-${{ github.event.number || github.event.issue.number }}
+    environment: 
+      name: pr-${{ github.event.number || github.event.issue.number }}
+      url: ${{ steps.verify-preview.outputs.url }}
 
     steps:
       # When triggered by slash commands (issue_comment), we need to check out the PR branch
