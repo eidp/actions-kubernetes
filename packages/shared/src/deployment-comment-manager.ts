@@ -1,7 +1,14 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
 import { getWorkflowRunUrl } from './pr-utils.js'
-import { STATUS_EMOJI, STATUS_TITLE, STATUS_DESCRIPTION } from './constants.js'
+import {
+  STATUS_EMOJI,
+  STATUS_TITLE,
+  STATUS_DESCRIPTION,
+  TeardownReason,
+  TEARDOWN_MESSAGE,
+  TEARDOWN_TIP
+} from './constants.js'
 
 export interface VerifiedResource {
   name: string
@@ -16,7 +23,7 @@ export interface DeploymentDetails {
   url?: string
   error?: string
   deletedCount?: number
-  wasTimeoutTriggered?: boolean
+  teardownReason?: TeardownReason
   age?: string
   verifiedResources?: VerifiedResource[]
   environment: string
@@ -365,11 +372,12 @@ export class DeploymentCommentManager {
   ): string {
     let body = `${identifier}\n\n🗑️ **Environment torn down**\n\n`
 
-    if (details.wasTimeoutTriggered) {
-      body += `Environment \`${details.environment}\` was automatically destroyed because the configured timeout has passed.\n\n`
-      body += `💡 **Tip:** To keep an environment, add the \`keep-preview\` label to your PR.\n\n`
-    } else {
-      body += `Environment \`${details.environment}\` has been manually torn down.\n\n`
+    const reason = details.teardownReason || TeardownReason.Manual
+    body += `${TEARDOWN_MESSAGE[reason](details.environment)}\n\n`
+
+    const tip = TEARDOWN_TIP[reason]
+    if (tip) {
+      body += `${tip}\n\n`
     }
 
     body += `**Details:**\n`

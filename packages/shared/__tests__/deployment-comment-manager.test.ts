@@ -5,6 +5,7 @@ import {
   DeploymentCommentManager,
   DeploymentStatus
 } from '../src/deployment-comment-manager.js'
+import { TeardownReason } from '../src/constants.js'
 
 interface MockOctokit {
   graphql: ReturnType<typeof vi.fn>
@@ -421,6 +422,107 @@ describe('DeploymentCommentManager', () => {
       expect(mockOctokit.rest.issues.createComment).toHaveBeenCalledWith(
         expect.objectContaining({
           body: expect.stringContaining('7')
+        })
+      )
+    })
+
+    it('should show manual teardown message for Manual reason', async () => {
+      vi.spyOn(github, 'getOctokit').mockReturnValue(
+        mockOctokit as unknown as ReturnType<typeof github.getOctokit>
+      )
+
+      mockOctokit.paginate.mockResolvedValue([])
+      mockOctokit.rest.issues.createComment.mockResolvedValue({})
+
+      const manager = new DeploymentCommentManager(
+        'fake-token',
+        42,
+        'abc123def'
+      )
+
+      await manager.createOrUpdateTeardownComment({
+        environment: 'preview-123',
+        teardownReason: TeardownReason.Manual
+      })
+
+      expect(mockOctokit.rest.issues.createComment).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.stringContaining('/teardown')
+        })
+      )
+    })
+
+    it('should show PR closed message for PrClosed reason', async () => {
+      vi.spyOn(github, 'getOctokit').mockReturnValue(
+        mockOctokit as unknown as ReturnType<typeof github.getOctokit>
+      )
+
+      mockOctokit.paginate.mockResolvedValue([])
+      mockOctokit.rest.issues.createComment.mockResolvedValue({})
+
+      const manager = new DeploymentCommentManager(
+        'fake-token',
+        42,
+        'abc123def'
+      )
+
+      await manager.createOrUpdateTeardownComment({
+        environment: 'preview-123',
+        teardownReason: TeardownReason.PrClosed
+      })
+
+      expect(mockOctokit.rest.issues.createComment).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.stringContaining('PR was closed')
+        })
+      )
+    })
+
+    it('should show scheduled message and tip for Scheduled reason', async () => {
+      vi.spyOn(github, 'getOctokit').mockReturnValue(
+        mockOctokit as unknown as ReturnType<typeof github.getOctokit>
+      )
+
+      mockOctokit.paginate.mockResolvedValue([])
+      mockOctokit.rest.issues.createComment.mockResolvedValue({})
+
+      const manager = new DeploymentCommentManager(
+        'fake-token',
+        42,
+        'abc123def'
+      )
+
+      await manager.createOrUpdateTeardownComment({
+        environment: 'preview-123',
+        teardownReason: TeardownReason.Scheduled
+      })
+
+      const call = mockOctokit.rest.issues.createComment.mock.calls[0][0]
+      expect(call.body).toContain('configured timeout has passed')
+      expect(call.body).toContain('keep-preview')
+    })
+
+    it('should default to Manual reason when teardownReason is not provided', async () => {
+      vi.spyOn(github, 'getOctokit').mockReturnValue(
+        mockOctokit as unknown as ReturnType<typeof github.getOctokit>
+      )
+
+      mockOctokit.paginate.mockResolvedValue([])
+      mockOctokit.rest.issues.createComment.mockResolvedValue({})
+
+      const manager = new DeploymentCommentManager(
+        'fake-token',
+        42,
+        'abc123def'
+      )
+
+      await manager.createOrUpdateTeardownComment({
+        environment: 'preview-123'
+      })
+
+      expect(mockOctokit.rest.issues.createComment).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.stringContaining('/teardown')
         })
       )
     })
