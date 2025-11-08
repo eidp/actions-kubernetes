@@ -24,8 +24,9 @@ concurrency:
 
 jobs:
   deploy-preview:
-    # Only run on PR events or PR comments (not issue comments)
-    if: (github.event_name == 'pull_request') || (github.event_name == 'issue_comment' && github.event.issue.pull_request)
+    if: |
+      (github.event_name == 'pull_request' && github.event.action != 'closed') ||
+      (github.event_name == 'issue_comment' && github.event.issue.pull_request)
     runs-on: ubuntu-latest
     environment: pr-${{ github.event.number || github.event.issue.number }}
 
@@ -63,7 +64,6 @@ jobs:
 
       - name: Deploy preview
         id: deploy-preview
-        if: github.event.action != 'closed'
         uses: eidp/actions-kubernetes/deploy-preview@v0
         with:
           # This references the GitHub environment for this PR, not the target cluster environment.
@@ -76,7 +76,7 @@ jobs:
 
       - name: Verify preview deployment
         id: verify-preview
-        if: github.event.action != 'closed' && (github.event_name != 'issue_comment' || steps.deploy-preview.outputs.namespace != '')
+        if: github.event_name != 'issue_comment' || steps.deploy-preview.outputs.namespace != ''
         uses: eidp/actions-kubernetes/verify-up@v0
         with:
           environment: 'pr-${{ github.event.number || github.event.issue.number }}'
@@ -85,6 +85,7 @@ jobs:
           flux-resource: 'helmrelease/<<YOUR_HELM_RELEASE_NAME>>' # e.g. helmrelease/my-app
           chart-version: '${{ steps.commit-version.outputs.version }}'
           github-token: ${{ github.token }}
+
   teardown:
     # Run when: PR is closed, issue comment on PR, or PR has 'dependencies' label
     if: |
