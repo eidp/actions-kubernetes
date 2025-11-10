@@ -15,7 +15,10 @@ import {
   FluxClient,
   Labels
 } from '@actions-kubernetes/k8s-client'
-import { TeardownReason } from '@actions-kubernetes/shared/constants'
+import {
+  TeardownReason,
+  getTeardownStatusMessage
+} from '@actions-kubernetes/shared/constants'
 import { generateSummary } from './summary'
 import {
   detectSlashCommand,
@@ -26,17 +29,6 @@ import {
 import { DeploymentCommentManager } from '@actions-kubernetes/shared/deployment-comment-manager'
 import { DeploymentStatusManager } from '@actions-kubernetes/shared/deployment-status-manager'
 import { getPRDetails, getPRNumber } from '@actions-kubernetes/shared/pr-utils'
-
-function getDeploymentStatusMessage(reason: TeardownReason): string {
-  switch (reason) {
-    case TeardownReason.Manual:
-      return 'Environment manually torn down'
-    case TeardownReason.PrClosed:
-      return 'Environment torn down (PR closed)'
-    case TeardownReason.Scheduled:
-      return 'Environment torn down (scheduled cleanup)'
-  }
-}
 
 async function run(): Promise<void> {
   const githubToken =
@@ -301,7 +293,7 @@ async function handleTargetedDeletion(
           githubToken,
           environment
         )
-        const statusMessage = getDeploymentStatusMessage(teardownReason)
+        const statusMessage = getTeardownStatusMessage(teardownReason)
         await deploymentStatusManager.updateDeploymentStatus(
           'inactive',
           undefined,
@@ -416,7 +408,7 @@ async function handleBulkDeletion(
           githubToken,
           environment
         )
-        const statusMessage = getDeploymentStatusMessage(teardownReason)
+        const statusMessage = getTeardownStatusMessage(teardownReason)
         await deploymentStatusManager.updateDeploymentStatus(
           'inactive',
           undefined,

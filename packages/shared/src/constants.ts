@@ -62,3 +62,14 @@ export const TEARDOWN_TIP = {
   [TeardownReason.Scheduled]:
     '💡 **Tip:** To keep an environment, add the `keep-preview` label to your PR.'
 } as const
+
+export function getTeardownStatusMessage(reason: TeardownReason): string {
+  switch (reason) {
+    case TeardownReason.Manual:
+      return 'Environment manually torn down'
+    case TeardownReason.PrClosed:
+      return 'Environment torn down (PR closed)'
+    case TeardownReason.Scheduled:
+      return 'Environment torn down (scheduled cleanup)'
+  }
+}
