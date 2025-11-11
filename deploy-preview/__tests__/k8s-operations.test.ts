@@ -40,12 +40,11 @@ describe('k8s-operations', () => {
         }
       }
 
-      vi.mocked(KubernetesClient).mockImplementation(
-        () =>
-          ({
-            readConfigMap: vi.fn().mockResolvedValue(mockConfigMap)
-          }) as unknown as KubernetesClient
-      )
+      vi.mocked(KubernetesClient).mockImplementation(function () {
+        return {
+          readConfigMap: vi.fn().mockResolvedValue(mockConfigMap)
+        } as unknown as KubernetesClient
+      })
 
       const result = await readTenantsReplacementConfig(mockKubeConfig)
 
@@ -62,12 +61,11 @@ describe('k8s-operations', () => {
     it('should throw error when ConfigMap has no data section', async () => {
       const mockConfigMap = {}
 
-      vi.mocked(KubernetesClient).mockImplementation(
-        () =>
-          ({
-            readConfigMap: vi.fn().mockResolvedValue(mockConfigMap)
-          }) as unknown as KubernetesClient
-      )
+      vi.mocked(KubernetesClient).mockImplementation(function () {
+        return {
+          readConfigMap: vi.fn().mockResolvedValue(mockConfigMap)
+        } as unknown as KubernetesClient
+      })
 
       await expect(
         readTenantsReplacementConfig(mockKubeConfig)
@@ -84,12 +82,11 @@ describe('k8s-operations', () => {
         }
       }
 
-      vi.mocked(KubernetesClient).mockImplementation(
-        () =>
-          ({
-            readConfigMap: vi.fn().mockResolvedValue(mockConfigMap)
-          }) as unknown as KubernetesClient
-      )
+      vi.mocked(KubernetesClient).mockImplementation(function () {
+        return {
+          readConfigMap: vi.fn().mockResolvedValue(mockConfigMap)
+        } as unknown as KubernetesClient
+      })
 
       await expect(
         readTenantsReplacementConfig(mockKubeConfig)
@@ -99,14 +96,13 @@ describe('k8s-operations', () => {
     })
 
     it('should wrap errors with context', async () => {
-      vi.mocked(KubernetesClient).mockImplementation(
-        () =>
-          ({
-            readConfigMap: vi
-              .fn()
-              .mockRejectedValue(new Error('ConfigMap not found'))
-          }) as unknown as KubernetesClient
-      )
+      vi.mocked(KubernetesClient).mockImplementation(function () {
+        return {
+          readConfigMap: vi
+            .fn()
+            .mockRejectedValue(new Error('ConfigMap not found'))
+        } as unknown as KubernetesClient
+      })
 
       await expect(
         readTenantsReplacementConfig(mockKubeConfig)
@@ -119,12 +115,11 @@ describe('k8s-operations', () => {
   describe('createOCIRepository', () => {
     it('should create OCIRepository with correct labels and spec', async () => {
       const mockCreateOCIRepository = vi.fn()
-      vi.mocked(FluxClient).mockImplementation(
-        () =>
-          ({
-            createOCIRepository: mockCreateOCIRepository
-          }) as unknown as FluxClient
-      )
+      vi.mocked(FluxClient).mockImplementation(function () {
+        return {
+          createOCIRepository: mockCreateOCIRepository
+        } as unknown as FluxClient
+      })
 
       await createOCIRepository(mockKubeConfig, {
         name: 'test-oci-repo',
@@ -172,12 +167,11 @@ describe('k8s-operations', () => {
 
     it('should handle null PR number', async () => {
       const mockCreateOCIRepository = vi.fn()
-      vi.mocked(FluxClient).mockImplementation(
-        () =>
-          ({
-            createOCIRepository: mockCreateOCIRepository
-          }) as unknown as FluxClient
-      )
+      vi.mocked(FluxClient).mockImplementation(function () {
+        return {
+          createOCIRepository: mockCreateOCIRepository
+        } as unknown as FluxClient
+      })
 
       await createOCIRepository(mockKubeConfig, {
         name: 'test-oci-repo',
@@ -203,12 +197,11 @@ describe('k8s-operations', () => {
   describe('createKustomization', () => {
     it('should create Kustomization with correct spec and labels', async () => {
       const mockCreateKustomization = vi.fn()
-      vi.mocked(FluxClient).mockImplementation(
-        () =>
-          ({
-            createKustomization: mockCreateKustomization
-          }) as unknown as FluxClient
-      )
+      vi.mocked(FluxClient).mockImplementation(function () {
+        return {
+          createKustomization: mockCreateKustomization
+        } as unknown as FluxClient
+      })
 
       await createKustomization(mockKubeConfig, {
         name: 'test-kust',
@@ -277,12 +270,11 @@ describe('k8s-operations', () => {
 
     it('should include chart version in postBuild substitutions when provided', async () => {
       const mockCreateKustomization = vi.fn()
-      vi.mocked(FluxClient).mockImplementation(
-        () =>
-          ({
-            createKustomization: mockCreateKustomization
-          }) as unknown as FluxClient
-      )
+      vi.mocked(FluxClient).mockImplementation(function () {
+        return {
+          createKustomization: mockCreateKustomization
+        } as unknown as FluxClient
+      })
 
       await createKustomization(mockKubeConfig, {
         name: 'test-kust',
@@ -309,12 +301,11 @@ describe('k8s-operations', () => {
 
     it('should not include chart version when not provided', async () => {
       const mockCreateKustomization = vi.fn()
-      vi.mocked(FluxClient).mockImplementation(
-        () =>
-          ({
-            createKustomization: mockCreateKustomization
-          }) as unknown as FluxClient
-      )
+      vi.mocked(FluxClient).mockImplementation(function () {
+        return {
+          createKustomization: mockCreateKustomization
+        } as unknown as FluxClient
+      })
 
       await createKustomization(mockKubeConfig, {
         name: 'test-kust',
