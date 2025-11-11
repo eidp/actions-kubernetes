@@ -15,6 +15,10 @@ import {
   FluxClient,
   Labels
 } from '@actions-kubernetes/k8s-client'
+import {
+  TeardownReason,
+  getTeardownStatusMessage
+} from '@actions-kubernetes/shared/constants'
 import { generateSummary } from './summary'
 import {
   detectSlashCommand,
@@ -47,6 +51,21 @@ async function run(): Promise<void> {
       core.info('Skipping execution (no matching command or not applicable)')
       return
     }
+
+    // Determine teardown reason
+    let teardownReason: TeardownReason
+    if (slashContext.isSlashCommand) {
+      teardownReason = TeardownReason.Manual
+    } else if (
+      github.context.eventName === 'pull_request' &&
+      github.context.payload.action === 'closed'
+    ) {
+      teardownReason = TeardownReason.PrClosed
+    } else {
+      teardownReason = TeardownReason.Scheduled
+    }
+
+    core.info(`Teardown reason: ${teardownReason}`)
 
     // Handle slash command permissions and reactions
     if (slashContext.isSlashCommand) {
@@ -101,9 +120,23 @@ async function run(): Promise<void> {
     const kc = await verifyKubernetesAccess(inputs.kubernetesContext)
 
     if (inputs.reference) {
-      await handleTargetedDeletion(inputs, outputs, kc, githubToken, commitSha)
+      await handleTargetedDeletion(
+        inputs,
+        outputs,
+        kc,
+        githubToken,
+        commitSha,
+        teardownReason
+      )
     } else {
-      await handleBulkDeletion(inputs, outputs, kc, githubToken, commitSha)
+      await handleBulkDeletion(
+        inputs,
+        outputs,
+        kc,
+        githubToken,
+        commitSha,
+        teardownReason
+      )
     }
 
     core.setOutput('deleted-count', outputs.deletedCount)
@@ -138,7 +171,8 @@ async function handleTargetedDeletion(
   outputs: ActionOutputs,
   kc: k8s.KubeConfig,
   githubToken: string,
-  commitSha: string
+  commitSha: string,
+  teardownReason: TeardownReason
 ): Promise<void> {
   core.startGroup(
     `Targeting preview deployment with reference: ${inputs.reference}`
@@ -241,7 +275,7 @@ async function handleTargetedDeletion(
         await new Promise((resolve) => setTimeout(resolve, 30000))
       }
 
-      // Post PR comment (manual teardown, no timeout)
+      // Post PR comment
       const prNumber = parseInt(inputs.reference, 10)
       if (!isNaN(prNumber)) {
         const commentManager = new DeploymentCommentManager(
@@ -250,7 +284,7 @@ async function handleTargetedDeletion(
           commitSha
         )
         await commentManager.createOrUpdateTeardownComment({
-          wasTimeoutTriggered: false,
+          teardownReason,
           environment
         })
 
@@ -259,10 +293,11 @@ async function handleTargetedDeletion(
           githubToken,
           environment
         )
+        const statusMessage = getTeardownStatusMessage(teardownReason)
         await deploymentStatusManager.updateDeploymentStatus(
           'inactive',
           undefined,
-          'Environment torn down'
+          statusMessage
         )
       }
     }
@@ -276,7 +311,8 @@ async function handleBulkDeletion(
   outputs: ActionOutputs,
   kc: k8s.KubeConfig,
   githubToken: string,
-  commitSha: string
+  commitSha: string,
+  teardownReason: TeardownReason
 ): Promise<void> {
   core.startGroup('Discovering all preview deployments')
 
@@ -354,7 +390,7 @@ async function handleBulkDeletion(
         await fluxClient.waitForKustomizationDeletion(name, inputs.timeout)
       }
 
-      // Post PR comment (timeout-triggered deletion)
+      // Post PR comment
       if (prNumber) {
         const commentManager = new DeploymentCommentManager(
           githubToken,
@@ -362,7 +398,7 @@ async function handleBulkDeletion(
           commitSha
         )
         await commentManager.createOrUpdateTeardownComment({
-          wasTimeoutTriggered: true,
+          teardownReason,
           age: ageDisplay,
           environment
         })
@@ -372,10 +408,11 @@ async function handleBulkDeletion(
           githubToken,
           environment
         )
+        const statusMessage = getTeardownStatusMessage(teardownReason)
         await deploymentStatusManager.updateDeploymentStatus(
           'inactive',
           undefined,
-          'Environment automatically torn down due to age'
+          statusMessage
         )
       }
     }

@@ -31,3 +31,45 @@ export const STATUS_DESCRIPTION = {
   failed: (environment: string) =>
     `Failed to create or verify your application in environment \`${environment}\`.`
 } as const
+
+/**
+ * Teardown reason types
+ */
+export enum TeardownReason {
+  Manual = 'manual',
+  PrClosed = 'pr-closed',
+  Scheduled = 'scheduled'
+}
+
+/**
+ * Teardown message templates based on reason
+ */
+export const TEARDOWN_MESSAGE = {
+  [TeardownReason.Manual]: (environment: string) =>
+    `Environment \`${environment}\` has been manually torn down via the \`/teardown\` command.`,
+  [TeardownReason.PrClosed]: (environment: string) =>
+    `Environment \`${environment}\` has been automatically torn down because the PR was closed.`,
+  [TeardownReason.Scheduled]: (environment: string) =>
+    `Environment \`${environment}\` was automatically torn down because the configured timeout has passed.`
+} as const
+
+/**
+ * Teardown tips based on reason
+ */
+export const TEARDOWN_TIP = {
+  [TeardownReason.Manual]: null,
+  [TeardownReason.PrClosed]: null,
+  [TeardownReason.Scheduled]:
+    '💡 **Tip:** To keep an environment, add the `keep-preview` label to your PR.'
+} as const
+
+export function getTeardownStatusMessage(reason: TeardownReason): string {
+  switch (reason) {
+    case TeardownReason.Manual:
+      return 'Environment manually torn down'
+    case TeardownReason.PrClosed:
+      return 'Environment torn down (PR closed)'
+    case TeardownReason.Scheduled:
+      return 'Environment torn down (scheduled cleanup)'
+  }
+}
