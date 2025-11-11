@@ -69,7 +69,9 @@ describe('k8s-connectivity', () => {
       })
     } as unknown as k8s.KubeConfig
 
-    vi.spyOn(k8s, 'KubeConfig').mockImplementation(() => mockKubeConfig)
+    vi.spyOn(k8s, 'KubeConfig').mockImplementation(function () {
+      return mockKubeConfig
+    })
   })
 
   describe('verifyKubernetesConnectivity', () => {

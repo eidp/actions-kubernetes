@@ -174,12 +174,11 @@ describe('FluxClient.waitForResourceReady', () => {
       }
     )
 
-    vi.spyOn(k8s, 'Watch').mockImplementation(
-      () =>
-        ({
-          watch: mockWatchMethod
-        }) as unknown as k8s.Watch
-    )
+    vi.spyOn(k8s, 'Watch').mockImplementation(function () {
+      return {
+        watch: mockWatchMethod
+      } as unknown as k8s.Watch
+    })
 
     const spec = fluxClient.parseFluxResourceInput(
       'helmreleases/echo-server-release'
@@ -220,12 +219,11 @@ describe('FluxClient.waitForResourceReady', () => {
       }
     )
 
-    vi.spyOn(k8s, 'Watch').mockImplementation(
-      () =>
-        ({
-          watch: mockWatchMethod
-        }) as unknown as k8s.Watch
-    )
+    vi.spyOn(k8s, 'Watch').mockImplementation(function () {
+      return {
+        watch: mockWatchMethod
+      } as unknown as k8s.Watch
+    })
 
     const spec = fluxClient.parseFluxResourceInput(
       'helmreleases/echo-server-release'
