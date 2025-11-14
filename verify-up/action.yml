@@ -7,6 +7,9 @@ description: |
   Checkout the [Create Kubernetes context](./create-context) action to create and configure a kubernetes context.
 
 author: EIDP
+branding:
+  color: 'blue'
+  icon: 'cloud-upload'
 
 inputs:
   environment:

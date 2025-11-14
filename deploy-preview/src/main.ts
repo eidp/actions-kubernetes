@@ -248,6 +248,9 @@ async function run(): Promise<void> {
       )
 
       // Update deployment status to error
+      const shortenedErrorMessage =
+        errorMessage.substring(0, 137) +
+        (errorMessage.length == 137 ? '...' : '')
       const deploymentStatusManager = new DeploymentStatusManager(
         inputs.githubToken,
         inputs.environment
@@ -255,7 +258,7 @@ async function run(): Promise<void> {
       await deploymentStatusManager.updateDeploymentStatus(
         'error',
         undefined,
-        errorMessage
+        shortenedErrorMessage
       )
     }
 

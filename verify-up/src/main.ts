@@ -147,6 +147,9 @@ async function run(): Promise<void> {
     )
 
     // Update deployment status to failure
+    const shortenedErrorMessage =
+      errorMessage.substring(0, 137) + (errorMessage.length == 137 ? '...' : '')
+
     const failureDeploymentStatusManager = new DeploymentStatusManager(
       githubToken,
       environment
@@ -154,7 +157,7 @@ async function run(): Promise<void> {
     await failureDeploymentStatusManager.updateDeploymentStatus(
       'failure',
       undefined,
-      errorMessage
+      shortenedErrorMessage
     )
 
     core.setFailed(errorMessage)
