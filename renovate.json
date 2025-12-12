@@ -1,4 +1,9 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["github>eidp/renovate-config"]
+  "extends": ["github>eidp/renovate-config"],
+  "postUpgradeTasks": {
+    "commands": ["pnpm install", "pnpm run bundle"],
+    "fileFilters": ["**/dist/**"],
+    "executionMode": "branch"
+  }
 }
