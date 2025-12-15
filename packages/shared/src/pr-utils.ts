@@ -18,6 +18,7 @@ export function getWorkflowRunUrl(): string {
 export interface PRDetails {
   sha: string
   branch: string
+  repo?: string
 }
 
 /**
@@ -41,6 +42,7 @@ export async function getPRDetails(
 
   return {
     sha: pr.head.sha,
-    branch: pr.head.ref
+    branch: pr.head.ref,
+    repo: pr.head.repo?.name
   }
 }

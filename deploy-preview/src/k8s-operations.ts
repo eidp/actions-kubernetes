@@ -135,6 +135,7 @@ export async function createKustomization(
     namespace: string
     environment: string
     gitBranch: string
+    gitRepo: string
     chartVersion?: string
     timeout: string
     instanceName: string
@@ -153,6 +154,7 @@ export async function createKustomization(
     environmentName: params.environment,
     helmReleaseName: helmReleaseName,
     releaseName: releaseName,
+    gitRepo: params.gitRepo,
     gitBranch: params.gitBranch,
     namespace: params.namespace,
     namePrefix: params.ciPrefix,
@@ -167,7 +169,7 @@ export async function createKustomization(
 
   const ciReferenceLabel = sanitizeLabelValue(params.reference)
   const repositoryLabel = sanitizeLabelValue(
-    `${github.context.repo.owner}_${github.context.repo.repo}`
+    `${github.context.repo.owner}_${params.gitRepo}`
   )
   const environmentLabel = sanitizeLabelValue(params.environment)
 

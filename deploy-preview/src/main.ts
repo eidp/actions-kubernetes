@@ -136,6 +136,8 @@ async function run(): Promise<void> {
   const prNumber = getPRNumber()
   let commitSha: string = github.context.sha
   let gitBranch = ''
+  let gitRepo: string = github.context.repo.repo
+
   let inputs: ActionInputs | null = null
   let resourceNames: ResourceNames | null = null
 
@@ -147,8 +149,10 @@ async function run(): Promise<void> {
       const prDetails = await getPRDetails(inputs.githubToken, prNumber)
       commitSha = prDetails.sha
       gitBranch = prDetails.branch
+      gitRepo = prDetails.repo ? prDetails.repo : gitRepo
+
       core.info(
-        `Resolved PR details - SHA: ${commitSha.substring(0, 7)}, Branch: ${gitBranch}`
+        `Resolved PR details - SHA: ${commitSha.substring(0, 7)}, Branch: ${gitBranch}, Repo: ${gitRepo}`
       )
     }
 
@@ -190,6 +194,7 @@ async function run(): Promise<void> {
     await createKustomization(kc, {
       name: resourceNames.kustomizationName,
       gitBranch,
+      gitRepo,
       instanceName,
       clusterName,
       objectStoreEndpoint,
