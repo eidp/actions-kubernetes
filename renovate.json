@@ -5,7 +5,7 @@
     "commands": [
       "install-tool node",
       "install-tool pnpm",
-      "pnpm install --lockfile-only",
+      "pnpm install",
       "pnpm build"
     ],
     "fileFilters": ["**/dist/**"],
