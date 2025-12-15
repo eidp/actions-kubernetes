@@ -212,6 +212,7 @@ describe('k8s-operations', () => {
         namespace: 'ci-pr-123-my-tenant',
         environment: 'preview-123',
         gitBranch: 'feature/test',
+        gitRepo: 'test-repo',
         timeout: '5m',
         instanceName: 'test-instance',
         clusterName: 'test-cluster',
@@ -253,6 +254,7 @@ describe('k8s-operations', () => {
                 helmReleaseName: 'ci-pr-123-my-tenant',
                 releaseName: 'ci-pr-123-my-tenant-tenant',
                 gitBranch: 'feature/test',
+                gitRepo: 'test-repo',
                 namespace: 'ci-pr-123-my-tenant',
                 namePrefix: 'ci-pr-123-',
                 objectStoreEndpoint: 'https://s3.example.com'
