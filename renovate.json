@@ -2,7 +2,7 @@
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": ["github>eidp/renovate-config"],
   "postUpgradeTasks": {
-    "commands": ["pnpm install", "pnpm run bundle"],
+    "commands": ["npx pnpm install --lockfile-only", "npx pnpm build"],
     "fileFilters": ["**/dist/**"],
     "executionMode": "branch"
   }
