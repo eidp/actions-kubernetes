@@ -75,7 +75,7 @@ describe('k8s-connectivity', () => {
   })
 
   describe('verifyKubernetesConnectivity', () => {
-    it('should successfully verify connectivity', async () => {
+    it('should successfully verify connectivity with flux permissions', async () => {
       mockKubeConfig.getContexts = vi.fn().mockReturnValue(mockContexts)
 
       mockAuthApi.createSelfSubjectReview.mockResolvedValue(mockAuthResponse)
@@ -100,6 +100,28 @@ describe('k8s-connectivity', () => {
       )
       expect(core.info).toHaveBeenCalledWith(
         '✅ Can list Kustomization resources in infra-fluxcd'
+      )
+      expect(core.info).toHaveBeenCalledWith(
+        '✅ Successfully connected to cluster with required permissions'
+      )
+    })
+
+    it('should skip flux permission checks when disabled', async () => {
+      mockKubeConfig.getContexts = vi.fn().mockReturnValue(mockContexts)
+
+      mockAuthApi.createSelfSubjectReview.mockResolvedValue(mockAuthResponse)
+
+      const result = await verifyKubernetesAccess('test-context', {
+        requireFluxPermissions: false
+      })
+
+      expect(result).toBe(mockKubeConfig)
+      expect(mockCustomApi.listNamespacedCustomObject).not.toHaveBeenCalled()
+      expect(core.info).not.toHaveBeenCalledWith(
+        expect.stringContaining('Can list OCIRepository')
+      )
+      expect(core.info).not.toHaveBeenCalledWith(
+        expect.stringContaining('Can list Kustomization')
       )
       expect(core.info).toHaveBeenCalledWith(
         '✅ Successfully connected to cluster with required permissions'
