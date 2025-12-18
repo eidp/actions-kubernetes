@@ -3,6 +3,7 @@ import * as k8s from '@kubernetes/client-node'
 import * as fs from 'fs'
 import * as path from 'path'
 import { parseJWTClaims } from './jwt'
+import { exchangeToken } from './token-exchange'
 
 async function run(): Promise<void> {
   try {
@@ -16,6 +17,16 @@ async function run(): Promise<void> {
       }
     )
     const printJwtClaims = core.getBooleanInput('print-jwt-claims')
+    const keycloakUrl = core.getInput('keycloak-url', {
+      required: true
+    })
+    const tokenExchangeClientId = core.getInput('token-exchange-client-id', {
+      required: true
+    })
+    const tokenExchangeClientSecret = core.getInput(
+      'token-exchange-client-secret',
+      { required: true }
+    )
 
     // Validate inputs
     if (!apiServer.startsWith('https://')) {
@@ -36,17 +47,40 @@ async function run(): Promise<void> {
       throw new Error('certificate-authority-data is not valid base64')
     }
 
-    // Get OIDC token
-    core.startGroup('Create GitHub OIDC token')
-    core.info('Requesting GitHub OIDC token with audience: kubernetes')
-    const idToken = await core.getIDToken('kubernetes')
-    core.setSecret(idToken)
+    // Get GitHub OIDC token
+    core.startGroup('Obtain GitHub OIDC token')
+    core.info('Requesting GitHub OIDC token')
+    const githubToken = await core.getIDToken()
+    core.setSecret(githubToken)
 
     if (printJwtClaims) {
       try {
-        const claims = parseJWTClaims(idToken)
+        const claims = parseJWTClaims(githubToken)
         core.info('')
-        core.info('JWT Claims:')
+        core.info('GitHub OIDC token claims:')
+        core.info(JSON.stringify(claims, null, 2))
+      } catch (error) {
+        core.warning(`Failed to parse JWT claims: ${error}`)
+      }
+    }
+    core.endGroup()
+
+    // Exchange token with Keycloak
+    core.startGroup('Exchange token with Keycloak')
+    core.info(`Exchanging token at: ${keycloakUrl}`)
+    const accessToken = await exchangeToken({
+      endpoint: keycloakUrl,
+      clientId: tokenExchangeClientId,
+      clientSecret: tokenExchangeClientSecret,
+      subjectToken: githubToken
+    })
+    core.setSecret(accessToken)
+
+    if (printJwtClaims) {
+      try {
+        const claims = parseJWTClaims(accessToken)
+        core.info('')
+        core.info('Keycloak access token claims:')
         core.info(JSON.stringify(claims, null, 2))
       } catch (error) {
         core.warning(`Failed to parse JWT claims: ${error}`)
@@ -70,7 +104,7 @@ async function run(): Promise<void> {
     // Create user configuration
     const user: k8s.User = {
       name: 'github-actions',
-      token: idToken
+      token: accessToken
     }
 
     // Create context configuration

@@ -3,9 +3,7 @@ description: |
   Create a kubernetes context. The context will be created using the provided API server URL and certificate authority data.
 
   For authentication, the action uses a [GitHub OIDC token](https://docs.github.com/en/actions/concepts/security/openid-connect#overview-of-openid-connect-oidc)
-  to request a short-lived token from GitHub's OIDC provider.
-
-  This action requires that your Kubernetes cluster is configured to trust tokens issued by GitHub's OIDC provider.
+  which is exchanged with Keycloak to obtain a Kubernetes access token.
 
   In order to request a token, this action requires the following permissions:
 
@@ -33,10 +31,20 @@ inputs:
       'The base64 encoded certificate authority data for the Kubernetes cluster.'
     required: true
     default: ''
-  kubectl-version:
-    description: 'The version of kubectl to use.'
-    required: false
-    default: 'latest'
+  keycloak-url:
+    description:
+      'The Keycloak realm URL for token exchange (e.g.
+      https://login.eidp.io/realms/eidp).'
+    required: true
+    default: ''
+  token-exchange-client-id:
+    description: 'The client ID for Keycloak token exchange.'
+    required: true
+    default: ''
+  token-exchange-client-secret:
+    description: 'The client secret for Keycloak token exchange.'
+    required: true
+    default: ''
   print-jwt-claims:
     description:
       'Print the JWT claims from the OIDC token for debugging purposes.'

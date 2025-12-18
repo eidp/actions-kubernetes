@@ -4,9 +4,7 @@
 Create a kubernetes context. The context will be created using the provided API server URL and certificate authority data.
 
 For authentication, the action uses a [GitHub OIDC token](https://docs.github.com/en/actions/concepts/security/openid-connect#overview-of-openid-connect-oidc)
-to request a short-lived token from GitHub's OIDC provider.
-
-This action requires that your Kubernetes cluster is configured to trust tokens issued by GitHub's OIDC provider.
+which is exchanged with Keycloak to obtain a Kubernetes access token.
 
 In order to request a token, this action requires the following permissions:
 
@@ -18,13 +16,15 @@ permissions:
 
 ## 🔧 Inputs
 
-|Name                         |Description                                                                    |Required|Default       |
-|-----------------------------|-------------------------------------------------------------------------------|--------|--------------|
-|`cluster`                    |The cluster to create the context for (e.g. development, staging, production). |No      |`development` |
-|`api-server`                 |The API server URL for the Kubernetes cluster.                                 |Yes     |``            |
-|`certificate-authority-data` |The base64 encoded certificate authority data for the Kubernetes cluster.      |Yes     |``            |
-|`kubectl-version`            |The version of kubectl to use.                                                 |No      |`latest`      |
-|`print-jwt-claims`           |Print the JWT claims from the OIDC token for debugging purposes.               |No      |`false`       |
+|Name                           |Description                                                                         |Required|Default       |
+|-------------------------------|------------------------------------------------------------------------------------|--------|--------------|
+|`cluster`                      |The cluster to create the context for (e.g. development, staging, production).      |No      |`development` |
+|`api-server`                   |The API server URL for the Kubernetes cluster.                                      |Yes     |``            |
+|`certificate-authority-data`   |The base64 encoded certificate authority data for the Kubernetes cluster.           |Yes     |``            |
+|`keycloak-url`                 |The Keycloak realm URL for token exchange (e.g. https://login.eidp.io/realms/eidp). |Yes     |``            |
+|`token-exchange-client-id`     |The client ID for Keycloak token exchange.                                          |Yes     |``            |
+|`token-exchange-client-secret` |The client secret for Keycloak token exchange.                                      |Yes     |``            |
+|`print-jwt-claims`             |Print the JWT claims from the OIDC token for debugging purposes.                    |No      |`false`       |
 
 ## 📤 Outputs
 
