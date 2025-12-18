@@ -44,8 +44,10 @@ async function run(): Promise<void> {
       core.info(`Resolved PR HEAD SHA: ${commitSha.substring(0, 7)}`)
     }
 
-    // Verify connectivity with namespace and permission checks
-    const kc = await verifyKubernetesAccess(kubernetesContext)
+    // Verify connectivity (flux permissions not needed for verify-up)
+    const kc = await verifyKubernetesAccess(kubernetesContext, {
+      requireFluxPermissions: false
+    })
 
     // Verify deployment
     verificationResults = await verifySpecificResource(
