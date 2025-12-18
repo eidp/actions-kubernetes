@@ -49,8 +49,8 @@ async function run(): Promise<void> {
 
     // Get GitHub OIDC token
     core.startGroup('Obtain GitHub OIDC token')
-    core.info('Requesting GitHub OIDC token with audience: kubernetes')
-    const githubToken = await core.getIDToken('kubernetes')
+    core.info('Requesting GitHub OIDC token')
+    const githubToken = await core.getIDToken()
     core.setSecret(githubToken)
 
     if (printJwtClaims) {
