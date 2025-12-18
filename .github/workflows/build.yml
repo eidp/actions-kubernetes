@@ -66,6 +66,9 @@ jobs:
         cluster: development
         api-server: ${{ vars.K8S_API_SERVER_DEVELOPMENT }}
         certificate-authority-data: ${{ secrets.K8S_CERTIFICATE_AUTHORITY_DATA_DEVELOPMENT }}
+        keycloak-url: ${{ vars.KEYCLOAK_URL }}
+        token-exchange-client-id: ${{ secrets.TOKEN_EXCHANGE_CLIENT_ID }}
+        token-exchange-client-secret: ${{ secrets.TOKEN_EXCHANGE_CLIENT_SECRET }}
         print-jwt-claims: 'true'
 
     - name: Verify context created
@@ -102,7 +105,7 @@ jobs:
     - name: Assert Kubernetes username
       uses: nick-fields/assert-action@aa0067e01f0f6545c31755d6ca128c5a3a14f6bf # v2.0.0
       with:
-        expected: github:repo:${{ github.repository}}:environment:development
+        expected: repo:${{ github.repository}}:environment:development
         actual: ${{ steps.verify-context.outputs.username }}
 
     - name: Assert Action Status
@@ -129,6 +132,9 @@ jobs:
         cluster: development
         api-server: ${{ vars.K8S_API_SERVER_DEVELOPMENT }}
         certificate-authority-data: ${{ secrets.K8S_CERTIFICATE_AUTHORITY_DATA_DEVELOPMENT }}
+        keycloak-url: ${{ vars.KEYCLOAK_URL }}
+        token-exchange-client-id: ${{ secrets.TOKEN_EXCHANGE_CLIENT_ID }}
+        token-exchange-client-secret: ${{ secrets.TOKEN_EXCHANGE_CLIENT_SECRET }}
         print-jwt-claims: 'true'
 
     - name: Install kubectl
