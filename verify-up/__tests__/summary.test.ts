@@ -11,6 +11,7 @@ describe('generateSummary', () => {
     addEOL: vi.fn().mockReturnThis(),
     addCodeBlock: vi.fn().mockReturnThis(),
     addQuote: vi.fn().mockReturnThis(),
+    addLink: vi.fn().mockReturnThis(),
     write: vi.fn().mockResolvedValue(undefined)
   }
 
@@ -114,8 +115,10 @@ describe('generateSummary', () => {
     await generateSummary(true, mockVerificationResults, inputsWithUrl)
 
     expect(mockSummary.addHeading).toHaveBeenCalledWith('Application URL', 3)
-    expect(mockSummary.addRaw).toHaveBeenCalledWith(
-      '🔗 [https://preview-123.example.com](https://preview-123.example.com)\n'
+    expect(mockSummary.addRaw).toHaveBeenCalledWith('🔗 ')
+    expect(mockSummary.addLink).toHaveBeenCalledWith(
+      'https://preview-123.example.com',
+      'https://preview-123.example.com'
     )
   })
 

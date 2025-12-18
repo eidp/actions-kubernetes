@@ -65,7 +65,7 @@ export async function generateSummary(
   if (inputs.url) {
     summary.addEOL()
     summary.addHeading('Application URL', 3)
-    summary.addRaw(`🔗 [${inputs.url}](${inputs.url})\n`)
+    summary.addRaw('🔗 ').addLink(inputs.url, inputs.url).addEOL()
   }
 
   // Add deployment status table if we have results
