@@ -27,17 +27,33 @@ export async function exchangeToken(
     audience: 'kubernetes.eidp.io'
   })
 
-  const response = await fetch(tokenUrl, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded'
-    },
-    body: body.toString()
-  })
+  let response: Response
+  try {
+    response = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      },
+      body: body.toString()
+    })
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error)
+    const cause = error instanceof Error ? (error.cause as Error) : undefined
+    const causeMessage = cause?.message ? `: ${cause.message}` : ''
+    throw new Error(
+      `Token exchange request to ${tokenUrl} failed: ${message}${causeMessage}`
+    )
+  }
 
   if (!response.ok) {
+    let errorBody = ''
+    try {
+      errorBody = await response.text()
+    } catch {
+      // Ignore errors reading response body
+    }
     throw new Error(
-      `Token exchange failed: ${response.status} ${response.statusText}`
+      `Token exchange failed: ${response.status} ${response.statusText}${errorBody ? `\nResponse: ${errorBody}` : ''}`
     )
   }
 

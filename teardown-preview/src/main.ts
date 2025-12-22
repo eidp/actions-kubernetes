@@ -179,12 +179,15 @@ async function handleTargetedDeletion(
   )
 
   const ciReferenceLabel = sanitizeLabelValue(inputs.reference)
-
-  core.info(
-    `Searching for resources with ci-reference label: ${ciReferenceLabel}`
+  const repositoryLabel = sanitizeLabelValue(
+    `${github.context.repo.owner}_${github.context.repo.repo}`
   )
 
-  const labelSelector = `${Labels.PREVIEW_DEPLOYMENT}=true,${Labels.CI_REFERENCE}=${ciReferenceLabel}`
+  core.info(
+    `Searching for resources with ci-reference: ${ciReferenceLabel}, repository: ${repositoryLabel}`
+  )
+
+  const labelSelector = `${Labels.PREVIEW_DEPLOYMENT}=true,${Labels.CI_REFERENCE}=${ciReferenceLabel},${Labels.REPOSITORY}=${repositoryLabel}`
 
   const fluxClient = new FluxClient(kc)
   const { kustomizations, ociRepositories } =

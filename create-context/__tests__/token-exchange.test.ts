@@ -61,7 +61,7 @@ describe('Token exchange', () => {
     expect(body.get('audience')).toBe('kubernetes.eidp.io')
   })
 
-  it('should throw error on HTTP error response', async () => {
+  it('should throw error on HTTP error response with body', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: false,
       status: 401,
@@ -76,11 +76,13 @@ describe('Token exchange', () => {
         clientSecret: 'wrong-secret',
         subjectToken: 'github-oidc-token'
       })
-    ).rejects.toThrow('Token exchange failed: 401 Unauthorized')
+    ).rejects.toThrow(
+      'Token exchange failed: 401 Unauthorized\nResponse: Invalid client credentials'
+    )
   })
 
-  it('should throw error on network failure', async () => {
-    mockFetch.mockRejectedValueOnce(new Error('Network error'))
+  it('should throw error on network failure with URL', async () => {
+    mockFetch.mockRejectedValueOnce(new Error('fetch failed'))
 
     await expect(
       exchangeToken({
@@ -89,7 +91,24 @@ describe('Token exchange', () => {
         clientSecret: 'test-secret',
         subjectToken: 'github-oidc-token'
       })
-    ).rejects.toThrow('Network error')
+    ).rejects.toThrow(
+      'Token exchange request to https://login.eidp.io/realms/eidp/protocol/openid-connect/token failed: fetch failed'
+    )
+  })
+
+  it('should include error cause in network failure message', async () => {
+    const causeError = new Error('getaddrinfo ENOTFOUND login.eidp.io')
+    const fetchError = new Error('fetch failed', { cause: causeError })
+    mockFetch.mockRejectedValueOnce(fetchError)
+
+    await expect(
+      exchangeToken({
+        endpoint: 'https://login.eidp.io/realms/eidp',
+        clientId: 'github-actions.eidp.io',
+        clientSecret: 'test-secret',
+        subjectToken: 'github-oidc-token'
+      })
+    ).rejects.toThrow('getaddrinfo ENOTFOUND login.eidp.io')
   })
 
   it('should throw error when response lacks access_token', async () => {
