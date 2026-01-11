@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@actions/core": "^2.0.0",
-    "@actions/github": "^6.0.1",
+    "@actions/github": "^7.0.0",
     "@kubernetes/client-node": "^1.4.0",
     "@actions-kubernetes/shared": "workspace:*",
     "@actions-kubernetes/k8s-client": "workspace:*"
